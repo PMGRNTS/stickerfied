@@ -1,0 +1,39 @@
+[gd_resource type="Theme" format=3 uid="uid://dsnbslphrq8l4"]
+
+[ext_resource type="Texture2D" uid="uid://q4i2fpb1581x" path="res://GUI/menu_BG.png" id="1_e1x85"]
+
+[sub_resource type="StyleBoxTexture" id="StyleBoxTexture_cjfk0"]
+texture = ExtResource("1_e1x85")
+texture_margin_left = 5.0
+texture_margin_right = 5.0
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_110ce"]
+bg_color = Color(0.34785944, 0.59916246, 0.9690353, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.10708135, 0.58755976, 0.92353874, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_cjfk0"]
+bg_color = Color(1, 0.5488924, 0.8610688, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[resource]
+Button/styles/normal = null
+GridContainer/constants/h_separation = 0
+GridContainer/constants/v_separation = 0
+HBoxContainer/constants/separation = 0
+PanelContainer/styles/panel = SubResource("StyleBoxTexture_cjfk0")
+ScrollContainer/colors/scroll_hint_horizontal_color = Color(0, 0, 0, 0)
+ScrollContainer/colors/scroll_hint_vertical_color = Color(0, 0, 0, 0)
+VScrollBar/styles/grabber = SubResource("StyleBoxFlat_110ce")
+VScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_110ce")
+VScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_cjfk0")

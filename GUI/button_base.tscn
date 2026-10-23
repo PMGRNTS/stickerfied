@@ -1,0 +1,33 @@
+[gd_scene format=3 uid="uid://c7icxamrechmt"]
+
+[ext_resource type="Texture2D" uid="uid://ckkgvq5vqgg1b" path="res://GUI/example_icon.png" id="1_y51gk"]
+[ext_resource type="Script" uid="uid://ch0gtmifyw647" path="res://script/button_base.gd" id="2_y51gk"]
+[ext_resource type="Texture2D" uid="uid://c7kqp1wqhn1sk" path="res://images/01Skin/greenskin.PNG" id="3_0o1ja"]
+
+[node name="Button" type="Button" unique_id=1835473677]
+clip_children = 2
+custom_minimum_size = Vector2(66, 66)
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -3.0
+offset_top = -3.0
+offset_right = -803.0
+offset_bottom = -503.0
+grow_horizontal = 2
+grow_vertical = 2
+icon = ExtResource("1_y51gk")
+flat = true
+autowrap_mode = 2
+icon_alignment = 1
+expand_icon = true
+script = ExtResource("2_y51gk")
+operation = "item"
+
+[node name="TextureRect" type="TextureRect" parent="." unique_id=1900081363]
+layout_mode = 0
+texture = ExtResource("3_0o1ja")
+expand_mode = 1
+stretch_mode = 5
+
+[connection signal="pressed" from="." to="." method="_on_button_pressed"]

@@ -1,0 +1,111 @@
+[gd_scene format=3 uid="uid://by0oaxtltlccq"]
+
+[ext_resource type="Script" uid="uid://cp64i8kvmjm4j" path="res://script/dress_up.gd" id="1_218i8"]
+[ext_resource type="PackedScene" uid="uid://cv83rgdidyu3y" path="res://GUI/tab_of_buttons.tscn" id="1_pm0by"]
+[ext_resource type="PackedScene" uid="uid://c7icxamrechmt" path="res://GUI/button_base.tscn" id="2_ihm3m"]
+[ext_resource type="Texture2D" uid="uid://bxntspef5pims" path="res://images/01Skin/blueskin.PNG" id="3_ihm3m"]
+[ext_resource type="PackedScene" uid="uid://085stdwoihki" path="res://GUI/category_button.tscn" id="3_patwh"]
+[ext_resource type="Script" uid="uid://bk71f6s8r6e35" path="res://script/interactivity.gd" id="4_l5b77"]
+[ext_resource type="Texture2D" uid="uid://ng4fxi4i0c6b" path="res://images/00Backgrounds/lines.jpg" id="6_218i8"]
+[ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="7_218i8"]
+[ext_resource type="Texture2D" uid="uid://ckkgvq5vqgg1b" path="res://GUI/example_icon.png" id="8_218i8"]
+
+[node name="DressUp" type="Node" unique_id=969461706]
+script = ExtResource("1_218i8")
+button_base = ExtResource("2_ihm3m")
+category_button = ExtResource("3_patwh")
+tab_of_buttons = ExtResource("1_pm0by")
+
+[node name="Interactivity" type="Node" parent="." unique_id=1941779067]
+unique_name_in_owner = true
+script = ExtResource("4_l5b77")
+
+[node name="BGHolder" type="Node2D" parent="." unique_id=254551110]
+
+[node name="ExampleBackground" type="Sprite2D" parent="BGHolder" unique_id=6986181 groups=["remove_at_start"]]
+texture = ExtResource("6_218i8")
+centered = false
+
+[node name="SpriteHolder" type="Node2D" parent="." unique_id=651944551]
+unique_name_in_owner = true
+
+[node name="DressupMenu" type="Control" parent="." unique_id=1380275446]
+unique_name_in_owner = true
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
+theme = ExtResource("7_218i8")
+
+[node name="ButtonTray" type="PanelContainer" parent="DressupMenu" unique_id=1339431818]
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -319.0
+offset_top = -228.0
+offset_right = -59.0
+offset_bottom = 202.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="VBoxContainer" type="VBoxContainer" parent="DressupMenu/ButtonTray" unique_id=1237066070]
+layout_mode = 2
+
+[node name="ScrollContainer" type="ScrollContainer" parent="DressupMenu/ButtonTray/VBoxContainer" unique_id=280947986]
+custom_minimum_size = Vector2(64, 80)
+layout_mode = 2
+size_flags_vertical = 0
+theme = ExtResource("7_218i8")
+theme_type_variation = &"category"
+theme_override_constants/scrollbar_v_separation = 20
+horizontal_scroll_mode = 3
+vertical_scroll_mode = 0
+
+[node name="MarginContainer" type="MarginContainer" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer" unique_id=395626096]
+layout_mode = 2
+theme_override_constants/margin_top = 16
+theme_override_constants/margin_bottom = 20
+
+[node name="CategoryButtons" type="HBoxContainer" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer" unique_id=1024074576]
+unique_name_in_owner = true
+layout_mode = 2
+theme = ExtResource("7_218i8")
+
+[node name="ExampleButton" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=644335832 groups=["remove_at_start"]]
+layout_mode = 2
+icon = ExtResource("8_218i8")
+
+[node name="ExampleButton2" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=278307981 groups=["remove_at_start"]]
+layout_mode = 2
+icon = ExtResource("8_218i8")
+
+[node name="ExampleButton3" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=529331027 groups=["remove_at_start"]]
+layout_mode = 2
+icon = ExtResource("8_218i8")
+
+[node name="ExampleButton4" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=1406776895 groups=["remove_at_start"]]
+layout_mode = 2
+icon = ExtResource("8_218i8")
+
+[node name="ExampleButton5" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=158043396 groups=["remove_at_start"]]
+layout_mode = 2
+icon = ExtResource("8_218i8")
+
+[node name="TabsOfItemsContainer" type="CenterContainer" parent="DressupMenu/ButtonTray/VBoxContainer" unique_id=458730207]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ExampleVbox" parent="DressupMenu/ButtonTray/VBoxContainer/TabsOfItemsContainer" unique_id=1098066562 groups=["remove_at_start"] instance=ExtResource("1_pm0by")]
+layout_mode = 2
+
+[node name="SpritePlaceholder" type="Sprite2D" parent="." unique_id=1884174206]
+unique_name_in_owner = true
+position = Vector2(261, 296)
+texture = ExtResource("3_ihm3m")

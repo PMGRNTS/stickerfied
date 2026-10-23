@@ -1,0 +1,79 @@
+[gd_scene format=3 uid="uid://cv83rgdidyu3y"]
+
+[ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="1_863mr"]
+[ext_resource type="PackedScene" uid="uid://c7icxamrechmt" path="res://GUI/button_base.tscn" id="1_v41ol"]
+[ext_resource type="Script" uid="uid://564ggkq8ct13" path="res://script/tab_of_buttons.gd" id="1_wpd10"]
+
+[node name="Vbox" type="VBoxContainer" unique_id=1098066562]
+offset_right = 250.0
+offset_bottom = 250.0
+theme = ExtResource("1_863mr")
+alignment = 1
+script = ExtResource("1_wpd10")
+button_base = ExtResource("1_v41ol")
+metadata/_tab_index = 0
+
+[node name="ScrollContainer" type="ScrollContainer" parent="." unique_id=2039632771]
+custom_minimum_size = Vector2(250, 250)
+layout_mode = 2
+horizontal_scroll_mode = 0
+vertical_scroll_mode = 4
+
+[node name="GridContainer" type="GridContainer" parent="ScrollContainer" unique_id=130587233]
+layout_mode = 2
+size_flags_horizontal = 6
+size_flags_vertical = 6
+theme = ExtResource("1_863mr")
+columns = 3
+
+[node name="Button" parent="ScrollContainer/GridContainer" unique_id=1835473677 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button2" parent="ScrollContainer/GridContainer" unique_id=387033063 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button3" parent="ScrollContainer/GridContainer" unique_id=822965983 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button4" parent="ScrollContainer/GridContainer" unique_id=1738453773 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button5" parent="ScrollContainer/GridContainer" unique_id=1181759082 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button6" parent="ScrollContainer/GridContainer" unique_id=1285556485 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button7" parent="ScrollContainer/GridContainer" unique_id=370857420 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button8" parent="ScrollContainer/GridContainer" unique_id=2107419694 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button9" parent="ScrollContainer/GridContainer" unique_id=570958105 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button10" parent="ScrollContainer/GridContainer" unique_id=1516595764 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button11" parent="ScrollContainer/GridContainer" unique_id=2137691342 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button12" parent="ScrollContainer/GridContainer" unique_id=1125100615 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button13" parent="ScrollContainer/GridContainer" unique_id=890940374 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button14" parent="ScrollContainer/GridContainer" unique_id=653875079 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button15" parent="ScrollContainer/GridContainer" unique_id=485118392 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="Button16" parent="ScrollContainer/GridContainer" unique_id=346231637 instance=ExtResource("1_v41ol")]
+layout_mode = 2
+
+[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=270730868]
+layout_mode = 2
+alignment = 1

@@ -1,0 +1,16 @@
+[gd_scene format=3 uid="uid://085stdwoihki"]
+
+[ext_resource type="Texture2D" uid="uid://lme86nb3esb1" path="res://images/00Backgrounds/icon.png" id="1_ouvg5"]
+[ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="1_rds4q"]
+[ext_resource type="Script" uid="uid://ch0gtmifyw647" path="res://script/button_base.gd" id="2_ouvg5"]
+
+[node name="CategoryButton" type="Button" unique_id=195033125 groups=["category_button"]]
+offset_right = 8.0
+offset_bottom = 8.0
+theme = ExtResource("1_rds4q")
+theme_type_variation = &"FlatButton"
+icon = ExtResource("1_ouvg5")
+script = ExtResource("2_ouvg5")
+operation = "category"
+
+[connection signal="pressed" from="." to="." method="_on_button_pressed"]
