@@ -35,7 +35,7 @@ const STICKER_STYLES := {
 	"Shiny 3D": "Glossy 3D toy-like render, soft studio lighting.",
 	"Realistic": "Realistic product photo style.",
 }
-const SETTINGS_FILE := "user://ai_settings.cfg"
+const SETTINGS_FILE := AIKey.SETTINGS_FILE
 
 @onready var client: OpenRouterClient = $OpenRouterClient
 
@@ -68,6 +68,8 @@ func open_for(new_kind:Kind) -> void:
 	open()
 
 func _on_open() -> void:
+	# the key may have been changed in the AI Stylist window
+	%KeyEdit.text = AIKey.current_key()
 	if not models_loaded:
 		_load_models()
 	%PromptEdit.grab_focus()
@@ -154,7 +156,7 @@ func generate() -> void:
 
 	if making == Kind.BACKGROUND:
 		var image = fit_to_size(result.image, Vector2i(size))
-		var path = GeneratedItems.save(background_layer(), image)
+		var path = GeneratedItems.save(background_layer(), image, prompt)
 		if path == "":
 			_set_status("The background was made, but couldn't be saved.")
 			return
@@ -162,7 +164,7 @@ func generate() -> void:
 		_set_status("Done! It's in the backgrounds menu." + cost_text)
 	else:
 		var image = StickerImage.prepare(result.image)
-		var path = GeneratedItems.save(interactivity.STICKERS, image)
+		var path = GeneratedItems.save(interactivity.STICKERS, image, prompt)
 		if path == "":
 			_set_status("The sticker was made, but couldn't be saved.")
 			return
@@ -230,14 +232,13 @@ func _load_settings() -> void:
 	preferred_models[Kind.BACKGROUND] = config.get_value("openrouter", "background_model",
 		config.get_value("openrouter", "model", default_background_model))
 	preferred_models[Kind.STICKER] = config.get_value("openrouter", "sticker_model", default_sticker_model)
-	%KeyEdit.text = config.get_value("openrouter", "api_key", "")
-	%RememberKey.set_pressed_no_signal(config.get_value("openrouter", "remember_key", true))
+	%KeyEdit.text = AIKey.load_key()
+	%RememberKey.set_pressed_no_signal(AIKey.remembers_key())
 
-# The key is only stored on this device (in the browser's storage on the web)
 func save_settings() -> void:
+	AIKey.save_key(%KeyEdit.text, %RememberKey.button_pressed)
 	var config := ConfigFile.new()
-	config.set_value("openrouter", "remember_key", %RememberKey.button_pressed)
-	config.set_value("openrouter", "api_key", %KeyEdit.text.strip_edges() if %RememberKey.button_pressed else "")
+	config.load(SETTINGS_FILE) # keeps the settings saved by other windows
 	config.set_value("openrouter", "background_model", preferred_models.get(Kind.BACKGROUND, default_background_model))
 	config.set_value("openrouter", "sticker_model", preferred_models.get(Kind.STICKER, default_sticker_model))
 	config.save(SETTINGS_FILE)

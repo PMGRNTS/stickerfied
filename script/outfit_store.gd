@@ -45,6 +45,7 @@ static func _write_index(all:Array) -> void:
 # The outfit is stored as {"03Hair": ["bob.PNG", -1], ...}, compressed,
 # and written as text. Empty layers are left out to keep the code short.
 # Stickers are stored as "_stickers": [["heart.svg", x, y, scale, rotation], ...]
+# with a 1 added at the end of mirrored stickers: ["heart.svg", x, y, scale, rotation, 1]
 
 const STICKERS := "_stickers"
 
@@ -55,7 +56,10 @@ static func to_share_code(outfit:Dictionary) -> String:
 		if layer == STICKERS:
 			if not entry.is_empty():
 				compact[STICKERS] = entry.map(func(sticker):
-					return [sticker.id, sticker.x, sticker.y, sticker.scale, sticker.rot])
+					var packed = [sticker.id, sticker.x, sticker.y, sticker.scale, sticker.rot]
+					if sticker.get("flip", false):
+						packed.append(1)
+					return packed)
 		elif entry.item != "" or entry.hue >= 0:
 			compact[layer] = [entry.item, snappedf(entry.hue, 0.001)]
 	var bytes = JSON.stringify(compact).to_utf8_buffer()
@@ -83,9 +87,9 @@ static func from_share_code(code:String) -> Dictionary:
 		if layer == STICKERS and entry is Array:
 			outfit[STICKERS] = []
 			for sticker in entry:
-				if sticker is Array and len(sticker) == 5:
+				if sticker is Array and len(sticker) in [5, 6]:
 					outfit[STICKERS].append({"id": str(sticker[0]), "x": sticker[1], "y": sticker[2],
-						"scale": sticker[3], "rot": sticker[4]})
+						"scale": sticker[3], "rot": sticker[4], "flip": len(sticker) == 6 and sticker[5] == 1})
 		elif entry is Array and len(entry) == 2:
 			outfit[layer] = {"item": str(entry[0]), "hue": float(entry[1])}
 	return outfit

@@ -2,6 +2,7 @@
 
 [ext_resource type="Script" path="res://script/toolbar.gd" id="1_toolbar"]
 [ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="2_theme"]
+[ext_resource type="Script" path="res://script/challenge_bar.gd" id="3_challenge"]
 
 [node name="Toolbar" type="Control"]
 layout_mode = 3
@@ -139,11 +140,97 @@ text = "Photo"
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
-size_flags_stretch_ratio = 2.0
 tooltip_text = "Make a new background or sticker with AI"
 focus_mode = 0
 theme_type_variation = &"ToolButton"
 text = "AI Create"
+
+[node name="StylistButton" type="Button" parent="BottomBar/Row2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Let AI pick an outfit, or judge yours"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "AI Stylist"
+
+[node name="ChallengeBar" type="VBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 1
+anchors_preset = 2
+anchor_top = 1.0
+anchor_bottom = 1.0
+offset_left = 16.0
+offset_top = -48.0
+offset_right = 116.0
+offset_bottom = -14.0
+grow_vertical = 0
+z_index = 110
+alignment = 2
+script = ExtResource("3_challenge")
+
+[node name="StartButton" type="Button" parent="ChallengeBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(100, 34)
+layout_mode = 2
+size_flags_horizontal = 0
+tooltip_text = "Get a theme and dress up for it before time runs out"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Challenge"
+
+[node name="ChallengePanel" type="PanelContainer" parent="ChallengeBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 0
+theme_type_variation = &"Toast"
+
+[node name="Content" type="VBoxContainer" parent="ChallengeBar/ChallengePanel"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ThemeLabel" type="Label" parent="ChallengeBar/ChallengePanel/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ToastLabel"
+theme_override_font_sizes/font_size = 18
+text = "Dress for: A day at the beach"
+
+[node name="Row" type="HBoxContainer" parent="ChallengeBar/ChallengePanel/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TimeLabel" type="Label" parent="ChallengeBar/ChallengePanel/Content/Row"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_type_variation = &"ToastLabel"
+theme_override_font_sizes/font_size = 18
+text = "1:30"
+
+[node name="JudgeThemeButton" type="Button" parent="ChallengeBar/ChallengePanel/Content/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "Let the AI judge score your look"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Judge"
+
+[node name="NewThemeButton" type="Button" parent="ChallengeBar/ChallengePanel/Content/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "A different theme"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "New theme"
+
+[node name="StopButton" type="Button" parent="ChallengeBar/ChallengePanel/Content/Row"]
+unique_name_in_owner = true
+layout_mode = 2
+tooltip_text = "End the challenge"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Stop"
 
 [node name="Toast" type="PanelContainer" parent="."]
 unique_name_in_owner = true

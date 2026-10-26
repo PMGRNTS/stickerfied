@@ -117,6 +117,7 @@ func _ready() -> void:
 			c.add_none_button()
 		if not interactivity.is_background(c.layer):
 			c.add_color_swatches()
+		c.add_options(not interactivity.is_background(c.layer))
 		print_debug(read_files_in_folder(c, IMAGE_FOLDER + c.layer))
 		# Items made while playing, such as AI backgrounds
 		for path in GeneratedItems.list(c.layer):

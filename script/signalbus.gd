@@ -12,3 +12,8 @@ signal dressup_item_signal(signalobject, operation)
 # hue is a value from 0 to 1, or -1 for "original colors".
 @warning_ignore("unused_signal")
 signal dressup_color_signal(layer, hue)
+
+# Sent while the player drags a color slider, before letting go.
+# The doll shows the color, but the outfit doesn't change yet.
+@warning_ignore("unused_signal")
+signal dressup_color_preview_signal(layer, hue)

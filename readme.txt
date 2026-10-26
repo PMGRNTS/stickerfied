@@ -9,7 +9,8 @@ Features:
 	Publish your dress-up game like any other Godot game
 
 	Players can recolor items, place stickers, undo/redo, randomize, save outfits, take photos,
-	share outfit codes and make new backgrounds and stickers with AI (see "Extra features" below)
+	share outfit codes, play dress-up challenges, make new backgrounds and stickers with AI,
+	and let an AI stylist dress the doll or judge the look (see "Extra features" below)
 
 Every layer (except backgrounds) has a row of color swatches that recolor the
 item: colorful parts take on the new hue, while black, white and gray parts
@@ -139,6 +140,11 @@ Layers:
   after the backgrounds, 01Skin in the example) always show something.
   The game starts with the first image of each of these.
 - Every other layer gets a "nothing" button, so items can be taken off.
+- Under the color swatches, the rainbow slider picks any color, and "Keep"
+  makes Random leave that layer as it is.
+- The game remembers the outfit the player was wearing and starts with it next time.
+  To always start fresh, select Interactivity in dress_up.tscn and untick
+  "Remember Last Outfit" in the Inspector.
 - Images can be png, jpg, jpeg, webp or svg. A file named icon.png is the
   category button, not an item.
 - Item buttons zoom in on the drawn part of each image, so small items
@@ -152,6 +158,10 @@ Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
 - Share gives a code (starting with DU1-) that a friend can paste to wear the same outfit
 - Photo saves a picture without the menus (a download in the browser)
 - AI Create makes a new background or sticker from a description (see below)
+- AI Stylist dresses the doll for an occasion, or judges the outfit (see below)
+- Challenge (bottom left) gives a theme to dress up for before the time runs out.
+  Press Judge for an AI score, or take a Photo. Change the themes and the time
+  by selecting ChallengeBar in GUI/toolbar.tscn ("Seconds" 0 means no time limit).
 
 Stickers:
 The star category button (the last one) holds stickers: accessories that can be
@@ -160,6 +170,11 @@ placed anywhere on the doll, unlike layers.
 - Drag the round handle at its corner to resize and turn it.
   The mouse wheel also resizes it, and Shift + mouse wheel turns it.
 - The red handle (or the Delete key) takes it off. Clicking a sticker brings it to the front.
+- The green handle (or the D key) makes a copy. The handle at the bottom left (or the F key)
+  mirrors it.
+- Drag a box over empty space to select several stickers (Shift + drag adds to the selection).
+  Shift + click adds or removes one sticker, Ctrl+A (Cmd+A on Mac) selects them all and
+  Escape lets go. Selected stickers move, resize, turn, copy, mirror and delete together.
 - Add your own sticker art to the "stickers" folder (transparent png or svg, any size).
   An icon.png in that folder replaces the star category button.
 - Stickers are saved with outfits and included in share codes.
@@ -184,6 +199,19 @@ sticker menu, and both are kept for next time. They have a small "x" button for 
   exported game. To pay for players' images yourself, run a small proxy server
   that holds the key, and set "Base Url" on the OpenRouterClient node
   (inside GUI/ai_create_dialog.tscn) to the proxy's address.
+
+AI Stylist:
+Uses the same OpenRouter key as AI Create, and a text model that can look at pictures
+(the default is anthropic/claude-haiku-5.5; change "Text Model" by selecting
+Popups/AIStylistDialog in dress_up.tscn).
+- Dress me: the player says where the doll is going ("a picnic in the park"), and the
+  stylist picks items and colors from the game's own menus. It reads the file names, so
+  name your art files clearly (red_beret.png, not item7.png). AI backgrounds and stickers
+  are described by the prompt they were made from. The change can be undone like any other.
+- Judge me: a picture of the doll (without the menus) is sent to the model, which gives
+  a score out of 10, a name for the look and a friendly tip. During a challenge it
+  judges how well the outfit fits the theme.
+- The instructions given to the model can be edited in the Inspector too.
 
 Sounds:
 The game makes its own small sound effects (pop, click, shutter, sparkle) with code

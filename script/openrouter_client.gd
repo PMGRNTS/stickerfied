@@ -79,6 +79,51 @@ func generate_image(prompt: String, model: Dictionary, target_size: Vector2, ext
 	var usage = response.data.get("usage")
 	return {"ok": true, "image": image, "cost": usage.get("cost") if usage is Dictionary else null}
 
+# Asks a text model a question and expects a JSON object back.
+# picture is optional: an Image the model can look at (it needs a model that accepts images).
+# Returns {"ok": true, "data": Dictionary, "cost": float or null} or {"ok": false, "error": "..."}
+func ask_json(model_id: String, instructions: String, question: String, picture: Image = null) -> Dictionary:
+	var content: Variant = question
+	if picture:
+		content = [
+			{"type": "text", "text": question},
+			{"type": "image_url", "image_url": {"url": "data:image/jpeg;base64," +
+				Marshalls.raw_to_base64(picture.save_jpg_to_buffer(0.85))}},
+		]
+	var body := {
+		"model": model_id,
+		"messages": [
+			{"role": "system", "content": instructions},
+			{"role": "user", "content": content},
+		],
+		"response_format": {"type": "json_object"},
+		"max_tokens": 1500,
+	}
+	var response = await _request("/chat/completions", HTTPClient.METHOD_POST, body)
+	if not response.ok:
+		return response
+	var choices = response.data.get("choices") if response.data is Dictionary else null
+	if not choices is Array or choices.is_empty() or not choices[0] is Dictionary:
+		return _fail("The model didn't answer. Try again.")
+	var message = choices[0].get("message", {})
+	var text = message.get("content", "") if message is Dictionary else ""
+	if text is Array: # some models send a list of text parts
+		text = "".join(text.map(func(part): return str(part.get("text", "")) if part is Dictionary else ""))
+	var data = parse_json_reply(str(text))
+	if data.is_empty():
+		return _fail("The model's answer couldn't be read. Try again.")
+	var usage = response.data.get("usage")
+	return {"ok": true, "data": data, "cost": usage.get("cost") if usage is Dictionary else null}
+
+# Finds the JSON object in a reply, even if the model wrapped it in other text
+static func parse_json_reply(text: String) -> Dictionary:
+	var start = text.find("{")
+	var end = text.rfind("}")
+	if start < 0 or end <= start:
+		return {}
+	var data = JSON.parse_string(text.substr(start, end - start + 1))
+	return data if data is Dictionary else {}
+
 
 #####################################
 ############## HELPERS ##############

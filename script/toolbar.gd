@@ -1,5 +1,5 @@
 # The tool buttons around the menu: undo/redo, random, reset,
-# save, saved outfits, share codes, photo and AI backgrounds.
+# save, saved outfits, share codes, photo, AI Create, AI Stylist and challenges.
 # Move or restyle the buttons in GUI/toolbar.tscn.
 
 extends Control
@@ -10,6 +10,7 @@ extends Control
 @export var outfit_gallery: OverlayDialog
 @export var share_dialog: OverlayDialog
 @export var ai_create_dialog: OverlayDialog
+@export var ai_stylist_dialog: OverlayDialog
 # Its selection frame is hidden while taking a photo
 @export var sticker_stage: Node2D
 
@@ -29,6 +30,9 @@ func _ready() -> void:
 	%ShareButton.pressed.connect(share_dialog.open)
 	%PhotoButton.pressed.connect(take_photo)
 	%AIButton.pressed.connect(ai_create_dialog.open)
+	%StylistButton.pressed.connect(ai_stylist_dialog.open)
+	%ChallengeBar.judge_requested.connect(func(): ai_stylist_dialog.open_for(ai_stylist_dialog.Mode.JUDGE))
+	%ChallengeBar.message.connect(show_message)
 	interactivity.outfit_changed.connect(_update_buttons)
 	%SoundButton.pressed.connect(func(): Sfx.set_muted(not Sfx.is_muted()))
 	Sfx.muted_changed.connect(_show_sound_state)
@@ -52,6 +56,10 @@ func _unhandled_input(event: InputEvent) -> void:
 		interactivity.undo()
 		get_viewport().set_input_as_handled()
 
+
+# The theme of the challenge being played, or "" when there is none
+func challenge_theme() -> String:
+	return %ChallengeBar.current_theme
 
 # A short message at the top of the screen that fades away
 func show_message(text: String) -> void:

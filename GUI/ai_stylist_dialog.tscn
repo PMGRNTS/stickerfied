@@ -1,0 +1,207 @@
+[gd_scene format=3]
+
+[ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="0_theme"]
+[ext_resource type="Script" path="res://script/ai_stylist_dialog.gd" id="1_script"]
+[ext_resource type="Script" path="res://script/openrouter_client.gd" id="2_client"]
+
+[node name="AIStylistDialog" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+theme = ExtResource("0_theme")
+script = ExtResource("1_script")
+
+[node name="Dim" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.08, 0.04, 0.16, 0.2)
+
+[node name="Panel" type="PanelContainer" parent="."]
+custom_minimum_size = Vector2(320, 0)
+layout_mode = 1
+anchors_preset = 6
+anchor_left = 1.0
+anchor_top = 0.5
+anchor_right = 1.0
+anchor_bottom = 0.5
+offset_left = -350.0
+offset_top = -150.0
+offset_right = -30.0
+offset_bottom = 150.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 14
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Title" type="Label" parent="Panel/Margin/Content"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "AI Stylist"
+
+[node name="ModeRow" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DressMode" type="Button" parent="Panel/Margin/Content/ModeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+button_pressed = true
+text = "Dress me"
+
+[node name="JudgeMode" type="Button" parent="Panel/Margin/Content/ModeRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+text = "Judge me"
+
+[node name="DressBox" type="VBoxContainer" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="DressHint" type="Label" parent="Panel/Margin/Content/DressBox"]
+layout_mode = 2
+text = "Where is your doll going?"
+
+[node name="OccasionEdit" type="LineEdit" parent="Panel/Margin/Content/DressBox"]
+unique_name_in_owner = true
+layout_mode = 2
+placeholder_text = "a picnic in the park"
+clear_button_enabled = true
+
+[node name="DressButton" type="Button" parent="Panel/Margin/Content/DressBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_type_variation = &"ToolButton"
+text = "Style me"
+
+[node name="JudgeBox" type="VBoxContainer" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="JudgeHint" type="Label" parent="Panel/Margin/Content/JudgeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(284, 0)
+layout_mode = 2
+text = "The judge looks at your doll and gives the look a score."
+autowrap_mode = 3
+
+[node name="JudgeButton" type="Button" parent="Panel/Margin/Content/JudgeBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 32)
+layout_mode = 2
+theme_type_variation = &"ToolButton"
+text = "Judge my outfit"
+
+[node name="Result" type="VBoxContainer" parent="Panel/Margin/Content/JudgeBox"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 4
+
+[node name="ScoreRow" type="HBoxContainer" parent="Panel/Margin/Content/JudgeBox/Result"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Stars" type="HBoxContainer" parent="Panel/Margin/Content/JudgeBox/Result/ScoreRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ScoreLabel" type="Label" parent="Panel/Margin/Content/JudgeBox/Result/ScoreRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 16
+text = "8 / 10"
+
+[node name="ResultTitle" type="Label" parent="Panel/Margin/Content/JudgeBox/Result"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(284, 0)
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "Sunny Picnic Princess"
+autowrap_mode = 3
+
+[node name="ResultComment" type="Label" parent="Panel/Margin/Content/JudgeBox/Result"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(284, 0)
+layout_mode = 2
+text = "Comment"
+autowrap_mode = 3
+
+[node name="StatusLabel" type="Label" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(284, 0)
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="Separator" type="HSeparator" parent="Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="KeyRow" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="KeyLabel" type="Label" parent="Panel/Margin/Content/KeyRow"]
+layout_mode = 2
+text = "API key"
+
+[node name="KeyEdit" type="LineEdit" parent="Panel/Margin/Content/KeyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "sk-or-..."
+secret = true
+clear_button_enabled = true
+
+[node name="GetKeyLink" type="LinkButton" parent="Panel/Margin/Content/KeyRow"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Get a key"
+uri = "https://openrouter.ai/keys"
+
+[node name="RememberKey" type="CheckBox" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+button_pressed = true
+text = "Remember my key on this device"
+
+[node name="Buttons" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+alignment = 2
+
+[node name="CloseButton" type="Button" parent="Panel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(90, 0)
+layout_mode = 2
+theme_type_variation = &"ToolButton"
+text = "Close"
+
+[node name="OpenRouterClient" type="Node" parent="."]
+script = ExtResource("2_client")

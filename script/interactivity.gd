@@ -8,8 +8,8 @@
 # "item" is "" when nothing is worn on that layer,
 # "hue" is -1 for original colors, or 0..1 for a recolor.
 # Stickers placed on the doll are kept in a list under "_stickers":
-#   "_stickers": [{"id": "heart.svg", "x": 250, "y": 120, "scale": 0.5, "rot": 0.3}, ...]
-# (x and y are screen positions, rot is the rotation in radians)
+#   "_stickers": [{"id": "heart.svg", "x": 250, "y": 120, "scale": 0.5, "rot": 0.3, "flip": false}, ...]
+# (x and y are screen positions, rot is the rotation in radians, flip mirrors the sticker)
 
 extends Node
 
@@ -22,6 +22,11 @@ const MAX_STICKERS := 30
 const STICKER_SCALE_LIMITS := Vector2(0.1, 6.0)
 # How big (in pixels) a new sticker is when it is first put on the doll
 const NEW_STICKER_SIZE := 110.0
+# The outfit is saved here after every change, so the game starts where the player left off
+const LAST_OUTFIT_FILE := "user://last_outfit.json"
+
+# Turn this off to always start with the first background and the doll's body
+@export var remember_last_outfit := true
 
 var layers :=[] #layer names (folder names)
 var layer_nodes:=[] #access to sprite layers
@@ -40,9 +45,14 @@ var sounds_on := false # no sounds while the game is setting up
 func _ready():
 	SignalBus.dressup_item_signal.connect(_on_button_press)
 	SignalBus.dressup_color_signal.connect(_on_color_press)
+	SignalBus.dressup_color_preview_signal.connect(_on_color_preview)
 
 func start_game()->void:
 	outfit = starting_outfit()
+	if remember_last_outfit and FileAccess.file_exists(LAST_OUTFIT_FILE):
+		var saved = JSON.parse_string(FileAccess.get_file_as_string(LAST_OUTFIT_FILE))
+		if saved is Dictionary:
+			outfit = cleaned_outfit(saved)
 	apply_outfit(false)
 	# fake pressing a button to hide unnecessary elements
 	SignalBus.dressup_item_signal.emit( get_tree().get_first_node_in_group("category_button") , "category")
@@ -74,6 +84,12 @@ func _on_color_press(layer:String, hue:float):
 	new_outfit[layer].hue = hue
 	set_outfit(new_outfit)
 	Sfx.play("click")
+
+# Shows a color on the doll while the color slider is dragged, without changing the outfit
+func _on_color_preview(layer:String, hue:float):
+	var sprite: Sprite2D = layer_nodes[layers.find(layer)]
+	sprite.material.set_shader_parameter("enabled", true)
+	sprite.material.set_shader_parameter("target_hue", hue)
 
 
 #####################################
@@ -126,10 +142,14 @@ func redo() -> void:
 func reset() -> void:
 	set_outfit(starting_outfit())
 
-# Picks a random item for every layer, and sometimes a random color
+# Picks a random item for every layer, and sometimes a random color.
+# Layers with "Keep" ticked stay as they are.
 func randomize_outfit() -> void:
 	var new_outfit := empty_outfit()
 	for i in len(layers):
+		if tab_nodes[i].is_kept():
+			new_outfit[layers[i]] = outfit[layers[i]].duplicate()
+			continue
 		var ids = tab_nodes[i].get_item_ids()
 		if ids.is_empty():
 			continue
@@ -164,7 +184,7 @@ func add_sticker(id:String) -> void:
 	var position = sticker_stage.new_sticker_position()
 	var picture_size = button.image.get_size()
 	new_outfit[STICKERS].append({"id": id, "x": position.x, "y": position.y,
-		"scale": NEW_STICKER_SIZE / maxf(picture_size.x, picture_size.y), "rot": 0.0})
+		"scale": NEW_STICKER_SIZE / maxf(picture_size.x, picture_size.y), "rot": 0.0, "flip": false})
 	set_outfit(new_outfit)
 	sticker_stage.select(len(outfit[STICKERS]) - 1)
 	if sounds_on:
@@ -226,6 +246,7 @@ func cleaned_outfit(new_outfit:Dictionary) -> Dictionary:
 			"y": snappedf(float(sticker.get("y", 0.0)), 0.1),
 			"scale": snappedf(clampf(float(sticker.get("scale", 1.0)), STICKER_SCALE_LIMITS.x, STICKER_SCALE_LIMITS.y), 0.001),
 			"rot": snappedf(wrapf(float(sticker.get("rot", 0.0)), -PI, PI), 0.001),
+			"flip": sticker.get("flip") is bool and sticker.get("flip"),
 		})
 	result[STICKERS] = result[STICKERS].slice(-MAX_STICKERS)
 	return result
@@ -272,6 +293,10 @@ func apply_outfit(animate := true) -> void:
 		sticker_stage.show_stickers(outfit[STICKERS])
 	if any_changed and sounds_on:
 		Sfx.play("pop")
+	if remember_last_outfit:
+		var file = FileAccess.open(LAST_OUTFIT_FILE, FileAccess.WRITE)
+		if file:
+			file.store_string(JSON.stringify(outfit))
 	outfit_changed.emit()
 
 # A quick fade and "pop" when an item is put on
