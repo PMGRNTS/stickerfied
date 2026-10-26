@@ -5,8 +5,10 @@ extends VBoxContainer
 
 const NONE_ICON = preload("res://GUI/none_icon.svg")
 const AI_ICON = preload("res://GUI/ai_icon.svg")
-# item_id of the "make one with AI" button, so it isn't mistaken for an item
+const UPLOAD_ICON = preload("res://GUI/upload_icon.svg")
+# item_ids of the "make one with AI" and "add your own picture" buttons, so they aren't mistaken for items
 const AI_BUTTON_ID := "::ai"
+const UPLOAD_BUTTON_ID := "::upload"
 
 # Hues offered by the color swatches under the item grid (0 = red, 0.33 = green, 0.66 = blue...)
 # Add or remove values to change the swatches. -1 means "original colors".
@@ -50,6 +52,15 @@ func add_ai_button(tooltip:String) -> void:
 	grid.move_child(newbutton, 0)
 
 
+# A button that lets the player add their own picture to this tab
+func add_upload_button() -> void:
+	var newbutton = add_item(UPLOAD_ICON, UPLOAD_BUTTON_ID)
+	newbutton.image = null
+	newbutton.operation = "upload"
+	newbutton.tooltip_text = "Add your own picture"
+	grid.move_child(newbutton, 0)
+
+
 # A button that takes the item off (hides the layer)
 func add_none_button() -> void:
 	var newbutton = add_item(NONE_ICON, "")
@@ -69,7 +80,7 @@ func get_item_button(id: String) -> Button:
 func get_item_ids() -> Array:
 	var ids := []
 	for button in grid.get_children():
-		if button.item_id not in ["", AI_BUTTON_ID] and not button.is_queued_for_deletion():
+		if button.item_id not in ["", AI_BUTTON_ID, UPLOAD_BUTTON_ID] and not button.is_queued_for_deletion():
 			ids.append(button.item_id)
 	return ids
 
@@ -104,7 +115,7 @@ static func item_label(id: String) -> String:
 	if description != "":
 		return description
 	if id.begins_with(GeneratedItems.ROOT):
-		return "AI picture"
+		return "Your picture" if id.get_file().begins_with("upload_") else "AI picture"
 	return id.get_file().get_basename().replace("_", " ").replace("-", " ")
 
 

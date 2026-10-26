@@ -9,7 +9,8 @@ Features:
 	Publish your dress-up game like any other Godot game
 
 	Players can recolor items, place stickers, undo/redo, randomize, save outfits, take photos,
-	share outfit codes, play dress-up challenges, make new backgrounds and stickers with AI,
+	share outfit codes, play dress-up challenges, make new backgrounds, stickers and doll items with AI,
+	add their own drawings and photos to any menu,
 	and let an AI stylist dress the doll or judge the look (see "Extra features" below)
 
 Every layer (except backgrounds) has a row of color swatches that recolor the
@@ -157,7 +158,7 @@ Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
 - Save keeps the outfit with a small picture; Outfits lists saved outfits
 - Share gives a code (starting with DU1-) that a friend can paste to wear the same outfit
 - Photo saves a picture without the menus (a download in the browser)
-- AI Create makes a new background or sticker from a description (see below)
+- AI Create makes a new background, sticker or doll item from a description (see below)
 - AI Stylist dresses the doll for an occasion, or judges the outfit (see below)
 - Challenge (bottom left) gives a theme to dress up for before the time runs out.
   Press Judge for an AI score, or take a Photo. Change the themes and the time
@@ -179,17 +180,41 @@ placed anywhere on the doll, unlike layers.
   An icon.png in that folder replaces the star category button.
 - Stickers are saved with outfits and included in share codes.
 
-Saved outfits, photos and AI pictures are stored in the player's user:// folder
+Players' own pictures:
+The first button in every menu (a picture with an arrow) adds a picture from the
+player's computer or phone: png, jpg, webp or svg. Dropping a picture file on the
+game window adds it to the menu that is open.
+- Backgrounds are scaled to cover the screen.
+- Stickers are trimmed and placed on the doll.
+- Doll items (hair, faces, clothes...) are put in place by the player: the menus hide,
+  the picture appears on the doll, and the player drags it into place, resizes it with the
+  mouse wheel or the corner handle, and presses Done (or Enter; Escape cancels).
+  A picture that is exactly the size of the doll's images skips this step and lines up
+  by itself, so art drawn over the doll's template fits straight away.
+- A plain background, such as white paper, is removed from stickers and doll items.
+  A drawing on clean white paper with a dark outline works best; a photo of paper
+  with shadows may keep some of the paper.
+- They can be recolored like the game's own items, and have a small "x" for deleting them.
+- The file name becomes the item's name ("red_beret.png" is "red beret"), which the
+  AI Stylist reads.
+- Like AI pictures, they only exist on the player's device: a share code that uses one
+  shows the outfit without it on another device.
+
+Saved outfits, photos, AI pictures and players' own pictures are stored in the player's user:// folder
 (in the browser's storage for web games), never in the game files.
 
-AI backgrounds and stickers:
-The AI Create window (also opened by the sparkle button in the background and
-sticker menus) uses OpenRouter ( https://openrouter.ai ), which offers
+AI backgrounds, stickers and doll items:
+The AI Create window (also opened by the sparkle button in the menus) uses OpenRouter ( https://openrouter.ai ), which offers
 many image models with one account. Each player pastes their own OpenRouter API key
 (from https://openrouter.ai/keys); it is only stored on their device.
 New backgrounds are added to the first background folder's menu, new stickers to the
-sticker menu, and both are kept for next time. They have a small "x" button for deleting them.
-- Stickers need a picture without a background. Models marked "(transparent)" in the list
+sticker menu, and all of them are kept for next time. They have a small "x" button for deleting them.
+- Doll items: pick "Doll item" and a layer (the sparkle button in a layer's menu picks it
+  for you), and describe it. The new item is put on the doll to be moved into place and
+  resized, the same way as players' own pictures (see above); Done adds it to that
+  layer's menu. It can be recolored like any other item. AI models don't know your
+  doll's exact shape, so the player lines it up by hand.
+- Stickers and doll items need a picture without a background. Models marked "(transparent)" in the list
   can make one (the default is openai/gpt-image-1-mini). With other models the game asks
   for a plain white background and removes it, which works best for items with an outline.
 - Change the default models and the text added to every prompt by selecting

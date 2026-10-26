@@ -125,11 +125,19 @@ func _ready() -> void:
 			if picture:
 				c.add_item(picture, path)
 
-	# The first background tab gets a button for making backgrounds with AI
+	# The first background tab gets a button for making backgrounds with AI,
+	# and every layer of the doll one for making items with AI
+	var has_background_ai := false
 	for c in interactivity.tab_nodes:
-		if interactivity.is_background(c.layer):
+		if not interactivity.is_background(c.layer):
+			c.add_ai_button("Make one with AI")
+		elif not has_background_ai:
 			c.add_ai_button("Make a background with AI")
-			break
+			has_background_ai = true
+
+	# Every tab gets a button for adding the player's own picture
+	for c in interactivity.tab_nodes:
+		c.add_upload_button()
 	
 	add_sticker_category()
 	
@@ -158,6 +166,7 @@ func add_sticker_category() -> void:
 	interactivity.sticker_tab = newtab
 	
 	newtab.add_ai_button("Make a sticker with AI")
+	newtab.add_upload_button()
 	print_debug(read_files_in_folder(newtab, STICKER_FOLDER))
 	for path in GeneratedItems.list(interactivity.STICKERS):
 		var picture = GeneratedItems.load_texture(path)

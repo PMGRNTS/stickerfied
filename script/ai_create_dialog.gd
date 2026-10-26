@@ -1,22 +1,30 @@
-# Pop-up that makes new backgrounds or stickers with AI, using OpenRouter.
+# Pop-up that makes new backgrounds, stickers or doll items with AI, using OpenRouter.
 # The player describes what they want and picks a style.
 #   - Backgrounds are added to the first background folder (the first folder starting with 00).
 #   - Stickers are added to the sticker menu and placed on the doll.
+#   - Doll items (hair, faces, clothes...) are put on the doll for the player to move
+#     into place (see picture_upload.gd), then added to that layer's menu.
 # Pictures are kept in user://generated/ so they're still there next time.
 
 extends OverlayDialog
 
 @export var interactivity: Node
+# Puts doll items on the doll so the player can move them into place
+@export var picture_upload: Node2D
 @export var default_background_model := "black-forest-labs/flux-3-image-klein"
 # Stickers work best with a model that can make transparent pictures.
 # Other models work too: the game removes their plain background.
 @export var default_sticker_model := "openai/gpt-image-1-mini"
+# Doll items need a see-through background too
+@export var default_item_model := "openai/gpt-image-1-mini"
 # Added to every prompt so the picture works as a backdrop behind the doll
 @export_multiline var background_prompt_suffix := "Background scenery for a dress-up game. Wide view, no people, no characters, no animals in the foreground, no text, no watermark."
 # Added to every sticker prompt so the result is one object that can be placed on the doll
 @export_multiline var sticker_prompt_suffix := "A single isolated accessory or sticker for a dress-up game, centered, whole object visible, clean dark outline, no person wearing it, no text, no shadow."
+# Added to every doll item prompt; %s is the layer's name, such as "Hair"
+@export_multiline var item_prompt_suffix := "A single %s piece for a 2D paper doll dress-up game, front view facing the viewer, shaped to be worn by the doll, whole item visible, clean dark outline, no person, no mannequin, no body, no text, no shadow."
 
-enum Kind { BACKGROUND, STICKER }
+enum Kind { BACKGROUND, STICKER, ITEM }
 
 # Style name shown in the menu : words added to the prompt
 const BACKGROUND_STYLES := {
@@ -40,6 +48,7 @@ const SETTINGS_FILE := AIKey.SETTINGS_FILE
 @onready var client: OpenRouterClient = $OpenRouterClient
 
 var kind := Kind.BACKGROUND
+var item_layer := "" # the doll layer a doll item is made for, such as "03Hair"
 var models := [] # every image model, from OpenRouter
 var models_loaded := false
 var preferred_models := {}
@@ -51,20 +60,28 @@ func _ready() -> void:
 	%CloseButton.pressed.connect(close)
 	%BackgroundKind.pressed.connect(func(): set_kind(Kind.BACKGROUND))
 	%StickerKind.pressed.connect(func(): set_kind(Kind.STICKER))
+	%ItemKind.pressed.connect(func(): set_kind(Kind.ITEM))
+	%LayerOption.item_selected.connect(func(index): set_kind(Kind.ITEM, doll_layers()[index]))
 	%KeyEdit.text_changed.connect(func(_text): save_settings())
 	%RememberKey.toggled.connect(func(_on): save_settings())
 	%ModelOption.item_selected.connect(func(index):
 		preferred_models[kind] = models[index].id
 		save_settings())
-	# the AI buttons in the background and sticker menus
+	# the AI buttons in the menus
 	SignalBus.dressup_item_signal.connect(func(button, operation):
-		if operation == "ai":
-			open_for(Kind.STICKER if button.category == interactivity.STICKERS else Kind.BACKGROUND))
+		if operation != "ai":
+			return
+		if button.category == interactivity.STICKERS:
+			open_for(Kind.STICKER)
+		elif interactivity.is_background(button.category):
+			open_for(Kind.BACKGROUND)
+		else:
+			open_for(Kind.ITEM, button.category))
 	_load_settings()
 	set_kind(Kind.BACKGROUND)
 
-func open_for(new_kind:Kind) -> void:
-	set_kind(new_kind)
+func open_for(new_kind:Kind, layer := "") -> void:
+	set_kind(new_kind, layer)
 	open()
 
 func _on_open() -> void:
@@ -74,12 +91,31 @@ func _on_open() -> void:
 		_load_models()
 	%PromptEdit.grab_focus()
 
-func set_kind(new_kind:Kind) -> void:
+# layer is the doll layer for Kind.ITEM; "" keeps the one chosen before
+func set_kind(new_kind:Kind, layer := "") -> void:
 	kind = new_kind
+	if layer != "":
+		item_layer = layer
+	if not item_layer in doll_layers():
+		item_layer = doll_layers()[0] if not doll_layers().is_empty() else ""
 	%BackgroundKind.set_pressed_no_signal(kind == Kind.BACKGROUND)
 	%StickerKind.set_pressed_no_signal(kind == Kind.STICKER)
-	%PromptHint.text = "Describe a place:" if kind == Kind.BACKGROUND else "Describe an accessory or sticker:"
-	%PromptEdit.placeholder_text = "a cozy bedroom with fairy lights" if kind == Kind.BACKGROUND else "a tiny golden crown with pink gems"
+	%ItemKind.set_pressed_no_signal(kind == Kind.ITEM)
+	%LayerRow.visible = kind == Kind.ITEM
+	%LayerOption.clear()
+	for other in doll_layers():
+		%LayerOption.add_item(layer_name(other))
+	%LayerOption.select(doll_layers().find(item_layer))
+	match kind:
+		Kind.BACKGROUND:
+			%PromptHint.text = "Describe a place:"
+			%PromptEdit.placeholder_text = "a cozy bedroom with fairy lights"
+		Kind.STICKER:
+			%PromptHint.text = "Describe an accessory or sticker:"
+			%PromptEdit.placeholder_text = "a tiny golden crown with pink gems"
+		Kind.ITEM:
+			%PromptHint.text = "Describe the new %s:" % layer_name(item_layer).to_lower()
+			%PromptEdit.placeholder_text = "purple with little gold stars"
 	%StyleOption.clear()
 	for style in _styles():
 		%StyleOption.add_item(style)
@@ -88,6 +124,9 @@ func set_kind(new_kind:Kind) -> void:
 	%GenerateButton.disabled = kind == Kind.BACKGROUND and background_layer() == ""
 	if %GenerateButton.disabled:
 		_set_status("This game has no background folder (a folder starting with 00).")
+	elif kind == Kind.ITEM and item_layer == "":
+		%GenerateButton.disabled = true
+		_set_status("This game has no doll layers yet.")
 
 func _styles() -> Dictionary:
 	return BACKGROUND_STYLES if kind == Kind.BACKGROUND else STICKER_STYLES
@@ -95,13 +134,22 @@ func _styles() -> Dictionary:
 func _process(_delta: float) -> void:
 	if busy_since >= 0:
 		var seconds = (Time.get_ticks_msec() - busy_since) / 1000
-		_set_status(("Painting your background... %ds" if kind == Kind.BACKGROUND else "Drawing your sticker... %ds") % seconds)
+		_set_status(["Painting your background... %ds", "Drawing your sticker... %ds", "Drawing your item... %ds"][kind] % seconds)
 
 func background_layer() -> String:
 	for layer in interactivity.layers:
 		if interactivity.is_background(layer):
 			return layer
 	return ""
+
+# Layers of the doll itself (not backgrounds), such as "01Skin" and "03Hair"
+func doll_layers() -> Array:
+	return interactivity.layers.filter(func(layer): return not interactivity.is_background(layer))
+
+# "03Hair" is "Hair"
+static func layer_name(layer:String) -> String:
+	var short_name = layer.lstrip("0123456789 _-")
+	return short_name.capitalize() if short_name != "" else layer
 
 
 #####################################
@@ -121,6 +169,7 @@ func generate() -> void:
 		return
 
 	var making = kind # the player could switch tabs while waiting
+	var layer = item_layer
 	var model = _selected_model()
 	var style = _styles()[%StyleOption.get_item_text(%StyleOption.selected)]
 	var full_prompt: String
@@ -131,7 +180,8 @@ func generate() -> void:
 		size = Vector2(ProjectSettings.get_setting("display/window/size/viewport_width"),
 			ProjectSettings.get_setting("display/window/size/viewport_height"))
 	else:
-		size = Vector2(1, 1)
+		# a doll item is drawn in the shape of the doll's images, so it is about the right size
+		size = Vector2(picture_upload.doll_size(layer)) if making == Kind.ITEM else Vector2(1, 1)
 		var transparent = can_make_transparent(model)
 		if transparent:
 			extra.background = "transparent"
@@ -139,7 +189,8 @@ func generate() -> void:
 				extra.output_format = "png"
 		if OpenRouterClient.supports(model, "quality", "medium"):
 			extra.quality = "medium"
-		full_prompt = "%s. %s %s %s" % [prompt.trim_suffix("."), style, sticker_prompt_suffix,
+		var suffix = sticker_prompt_suffix if making == Kind.STICKER else item_prompt_suffix % layer_name(layer).to_lower()
+		full_prompt = "%s. %s %s %s" % [prompt.trim_suffix("."), style, suffix,
 			"Transparent background." if transparent else "On a plain flat pure white background."]
 
 	busy_since = Time.get_ticks_msec()
@@ -162,6 +213,11 @@ func generate() -> void:
 			return
 		interactivity.add_runtime_item(background_layer(), ImageTexture.create_from_image(image), path)
 		_set_status("Done! It's in the backgrounds menu." + cost_text)
+	elif making == Kind.ITEM:
+		# the player moves it into place; it's saved when they press Done
+		_set_status("Done! It was put on the doll to move into place." + cost_text)
+		close()
+		picture_upload.place_picture(layer, result.image, prompt, "ai")
 	else:
 		var image = StickerImage.prepare(result.image)
 		var path = GeneratedItems.save(interactivity.STICKERS, image, prompt)
@@ -204,18 +260,18 @@ func _load_models() -> void:
 	_show_models()
 
 func _default_model() -> String:
-	return default_background_model if kind == Kind.BACKGROUND else default_sticker_model
+	return [default_background_model, default_sticker_model, default_item_model][kind]
 
-# Lists the models; for stickers, the ones that make transparent pictures are marked
+# Lists the models; for stickers and doll items, the ones that make transparent pictures are marked
 func _show_models() -> void:
-	for id in [default_background_model, default_sticker_model]:
+	for id in [default_background_model, default_sticker_model, default_item_model]:
 		if not models.any(func(model): return model.id == id):
 			models.push_front({"id": id, "name": id, "aspect_ratios": [], "resolutions": [], "params": {}})
 	var wanted = preferred_models.get(kind, _default_model())
 	%ModelOption.clear()
 	for model in models:
 		var label = model.name
-		if kind == Kind.STICKER and can_make_transparent(model):
+		if kind != Kind.BACKGROUND and can_make_transparent(model):
 			label += "  (transparent)"
 		%ModelOption.add_item(label)
 		if model.id == wanted:
@@ -232,6 +288,7 @@ func _load_settings() -> void:
 	preferred_models[Kind.BACKGROUND] = config.get_value("openrouter", "background_model",
 		config.get_value("openrouter", "model", default_background_model))
 	preferred_models[Kind.STICKER] = config.get_value("openrouter", "sticker_model", default_sticker_model)
+	preferred_models[Kind.ITEM] = config.get_value("openrouter", "item_model", default_item_model)
 	%KeyEdit.text = AIKey.load_key()
 	%RememberKey.set_pressed_no_signal(AIKey.remembers_key())
 
@@ -241,6 +298,7 @@ func save_settings() -> void:
 	config.load(SETTINGS_FILE) # keeps the settings saved by other windows
 	config.set_value("openrouter", "background_model", preferred_models.get(Kind.BACKGROUND, default_background_model))
 	config.set_value("openrouter", "sticker_model", preferred_models.get(Kind.STICKER, default_sticker_model))
+	config.set_value("openrouter", "item_model", preferred_models.get(Kind.ITEM, default_item_model))
 	config.save(SETTINGS_FILE)
 
 func _set_status(text: String) -> void:

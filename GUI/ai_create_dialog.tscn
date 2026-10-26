@@ -75,6 +75,31 @@ theme_type_variation = &"ToolButton"
 toggle_mode = true
 text = "Sticker"
 
+[node name="ItemKind" type="Button" parent="Center/Panel/Margin/Content/KindRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+text = "Doll item"
+
+[node name="LayerRow" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="LayerLabel" type="Label" parent="Center/Panel/Margin/Content/LayerRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+text = "Layer"
+
+[node name="LayerOption" type="OptionButton" parent="Center/Panel/Margin/Content/LayerRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="PromptHint" type="Label" parent="Center/Panel/Margin/Content"]
 unique_name_in_owner = true
 layout_mode = 2

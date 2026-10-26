@@ -15,6 +15,7 @@
 [ext_resource type="PackedScene" path="res://GUI/ai_create_dialog.tscn" id="12_ai"]
 [ext_resource type="Script" path="res://script/sticker_stage.gd" id="13_stickers"]
 [ext_resource type="PackedScene" path="res://GUI/ai_stylist_dialog.tscn" id="14_stylist"]
+[ext_resource type="Script" path="res://script/picture_upload.gd" id="15_upload"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -142,9 +143,18 @@ interactivity = NodePath("../../Interactivity")
 [node name="ShareDialog" parent="Popups" node_paths=PackedStringArray("interactivity") instance=ExtResource("11_share")]
 interactivity = NodePath("../../Interactivity")
 
-[node name="AICreateDialog" parent="Popups" node_paths=PackedStringArray("interactivity") instance=ExtResource("12_ai")]
+[node name="AICreateDialog" parent="Popups" node_paths=PackedStringArray("interactivity", "picture_upload") instance=ExtResource("12_ai")]
 interactivity = NodePath("../../Interactivity")
+picture_upload = NodePath("../../PictureUpload")
 
 [node name="AIStylistDialog" parent="Popups" node_paths=PackedStringArray("interactivity", "toolbar") instance=ExtResource("14_stylist")]
 interactivity = NodePath("../../Interactivity")
 toolbar = NodePath("../../DressupMenu/Toolbar")
+
+[node name="PictureUpload" type="Node2D" parent="." node_paths=PackedStringArray("interactivity", "sprite_holder", "ui_root", "sticker_stage", "toolbar")]
+script = ExtResource("15_upload")
+interactivity = NodePath("../Interactivity")
+sprite_holder = NodePath("../SpriteHolder")
+ui_root = NodePath("../DressupMenu")
+sticker_stage = NodePath("../StickerStage")
+toolbar = NodePath("../DressupMenu/Toolbar")
