@@ -19,6 +19,7 @@ config/icon="res://icon.svg"
 
 SignalBus="*uid://cly71n60o1meu"
 Sfx="*res://script/sound_effects.gd"
+WebTextInput="*res://script/web_text_input.gd"
 
 [display]
 
