@@ -1,0 +1,161 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/toolbar.gd" id="1_toolbar"]
+[ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="2_theme"]
+
+[node name="Toolbar" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("2_theme")
+script = ExtResource("1_toolbar")
+
+[node name="TopBar" type="HBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -319.0
+offset_top = 30.0
+offset_right = -59.0
+offset_bottom = 62.0
+grow_horizontal = 0
+theme_override_constants/separation = 4
+
+[node name="UndoButton" type="Button" parent="TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Undo (Ctrl+Z)"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+disabled = true
+text = "Undo"
+
+[node name="RedoButton" type="Button" parent="TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Redo (Ctrl+Shift+Z)"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+disabled = true
+text = "Redo"
+
+[node name="RandomButton" type="Button" parent="TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Pick a random outfit"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Random"
+
+[node name="ResetButton" type="Button" parent="TopBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Start over"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Reset"
+
+[node name="SoundButton" type="Button" parent="TopBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+layout_mode = 2
+tooltip_text = "Sound is on"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+icon_alignment = 1
+expand_icon = true
+
+[node name="BottomBar" type="VBoxContainer" parent="."]
+layout_mode = 1
+anchors_preset = 3
+anchor_left = 1.0
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -319.0
+offset_top = -88.0
+offset_right = -59.0
+offset_bottom = -14.0
+grow_horizontal = 0
+grow_vertical = 0
+theme_override_constants/separation = 6
+
+[node name="Row1" type="HBoxContainer" parent="BottomBar"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="SaveButton" type="Button" parent="BottomBar/Row1"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Save this outfit"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Save"
+
+[node name="OutfitsButton" type="Button" parent="BottomBar/Row1"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Your saved outfits"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Outfits"
+
+[node name="ShareButton" type="Button" parent="BottomBar/Row1"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Share or load an outfit code"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Share"
+
+[node name="Row2" type="HBoxContainer" parent="BottomBar"]
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="PhotoButton" type="Button" parent="BottomBar/Row2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Save a picture of your outfit"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "Photo"
+
+[node name="AIButton" type="Button" parent="BottomBar/Row2"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+size_flags_stretch_ratio = 2.0
+tooltip_text = "Make a new background or sticker with AI"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "AI Create"
+
+[node name="Toast" type="PanelContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 16.0
+mouse_filter = 2
+z_index = 10
+theme_type_variation = &"Toast"
+
+[node name="ToastLabel" type="Label" parent="Toast"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_type_variation = &"ToastLabel"
+text = "Message"

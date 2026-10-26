@@ -74,6 +74,7 @@ layout_mode = 2
 [node name="Button16" parent="ScrollContainer/GridContainer" unique_id=346231637 instance=ExtResource("1_v41ol")]
 layout_mode = 2
 
-[node name="HBoxContainer" type="HBoxContainer" parent="." unique_id=270730868]
+[node name="Swatches" type="HBoxContainer" parent="." unique_id=270730868]
 layout_mode = 2
+theme_override_constants/separation = 2
 alignment = 1

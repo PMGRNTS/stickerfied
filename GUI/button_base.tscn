@@ -4,6 +4,18 @@
 [ext_resource type="Script" uid="uid://ch0gtmifyw647" path="res://script/button_base.gd" id="2_y51gk"]
 [ext_resource type="Texture2D" uid="uid://c7kqp1wqhn1sk" path="res://images/01Skin/greenskin.PNG" id="3_0o1ja"]
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_selected"]
+draw_center = false
+border_width_left = 3
+border_width_top = 3
+border_width_right = 3
+border_width_bottom = 3
+border_color = Color(0.2, 0.33, 0.85, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
 [node name="Button" type="Button" unique_id=1835473677]
 clip_children = 2
 custom_minimum_size = Vector2(66, 66)
@@ -29,5 +41,20 @@ layout_mode = 0
 texture = ExtResource("3_0o1ja")
 expand_mode = 1
 stretch_mode = 5
+
+[node name="Selected" type="Panel" parent="."]
+visible = false
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = 5.0
+offset_top = 5.0
+offset_right = -5.0
+offset_bottom = -5.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme_override_styles/panel = SubResource("StyleBoxFlat_selected")
 
 [connection signal="pressed" from="." to="." method="_on_button_pressed"]

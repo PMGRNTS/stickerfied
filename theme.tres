@@ -26,6 +26,95 @@ corner_radius_top_right = 3
 corner_radius_bottom_right = 3
 corner_radius_bottom_left = 3
 
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tool_normal"]
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 1, 1, 0.92)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.34785944, 0.59916246, 0.9690353, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tool_hover"]
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+bg_color = Color(1, 0.88, 0.96, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(1, 0.5488924, 0.8610688, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tool_pressed"]
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+bg_color = Color(0.34785944, 0.59916246, 0.9690353, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.10708135, 0.58755976, 0.92353874, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_tool_disabled"]
+content_margin_left = 6.0
+content_margin_top = 4.0
+content_margin_right = 6.0
+content_margin_bottom = 4.0
+bg_color = Color(0.92, 0.92, 0.95, 0.85)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.7, 0.7, 0.75, 1)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_toast"]
+content_margin_left = 12.0
+content_margin_top = 6.0
+content_margin_right = 12.0
+content_margin_bottom = 6.0
+bg_color = Color(0.16, 0.13, 0.33, 0.9)
+corner_radius_top_left = 8
+corner_radius_top_right = 8
+corner_radius_bottom_right = 8
+corner_radius_bottom_left = 8
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete"]
+bg_color = Color(0.86, 0.25, 0.4, 0.95)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
+[sub_resource type="StyleBoxFlat" id="StyleBoxFlat_delete_hover"]
+bg_color = Color(1, 0.35, 0.5, 1)
+corner_radius_top_left = 9
+corner_radius_top_right = 9
+corner_radius_bottom_right = 9
+corner_radius_bottom_left = 9
+
 [resource]
 Button/styles/normal = null
 GridContainer/constants/h_separation = 0
@@ -37,3 +126,29 @@ ScrollContainer/colors/scroll_hint_vertical_color = Color(0, 0, 0, 0)
 VScrollBar/styles/grabber = SubResource("StyleBoxFlat_110ce")
 VScrollBar/styles/grabber_highlight = SubResource("StyleBoxFlat_110ce")
 VScrollBar/styles/grabber_pressed = SubResource("StyleBoxFlat_cjfk0")
+DeleteButton/base_type = &"Button"
+DeleteButton/colors/font_color = Color(1, 1, 1, 1)
+DeleteButton/colors/font_hover_color = Color(1, 1, 1, 1)
+DeleteButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+DeleteButton/font_sizes/font_size = 11
+DeleteButton/styles/hover = SubResource("StyleBoxFlat_delete_hover")
+DeleteButton/styles/normal = SubResource("StyleBoxFlat_delete")
+DeleteButton/styles/pressed = SubResource("StyleBoxFlat_delete_hover")
+Label/colors/font_color = Color(0.16, 0.13, 0.33, 1)
+Toast/base_type = &"PanelContainer"
+Toast/styles/panel = SubResource("StyleBoxFlat_toast")
+ToastLabel/base_type = &"Label"
+ToastLabel/colors/font_color = Color(1, 1, 1, 1)
+ToolButton/base_type = &"Button"
+ToolButton/colors/font_color = Color(0.16, 0.13, 0.33, 1)
+ToolButton/colors/font_disabled_color = Color(0.5, 0.5, 0.55, 1)
+ToolButton/colors/font_focus_color = Color(0.16, 0.13, 0.33, 1)
+ToolButton/colors/font_hover_color = Color(0.16, 0.13, 0.33, 1)
+ToolButton/colors/font_hover_pressed_color = Color(1, 1, 1, 1)
+ToolButton/colors/font_pressed_color = Color(1, 1, 1, 1)
+ToolButton/font_sizes/font_size = 14
+ToolButton/styles/disabled = SubResource("StyleBoxFlat_tool_disabled")
+ToolButton/styles/hover = SubResource("StyleBoxFlat_tool_hover")
+ToolButton/styles/hover_pressed = SubResource("StyleBoxFlat_tool_pressed")
+ToolButton/styles/normal = SubResource("StyleBoxFlat_tool_normal")
+ToolButton/styles/pressed = SubResource("StyleBoxFlat_tool_pressed")

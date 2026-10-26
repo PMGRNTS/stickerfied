@@ -8,9 +8,14 @@ Features:
 	Use as many layers as you want- scroll bars will appear to accomodate more buttons
 	Publish your dress-up game like any other Godot game
 
-This project does not support color grouping of items, but you can add as many 
-options to each layer as you'd like. So to offer a red and a green shirt, you 
-can simply add both as separate shirt images!
+	Players can recolor items, place stickers, undo/redo, randomize, save outfits, take photos,
+	share outfit codes and make new backgrounds and stickers with AI (see "Extra features" below)
+
+Every layer (except backgrounds) has a row of color swatches that recolor the
+item: colorful parts take on the new hue, while black, white and gray parts
+(outlines, eye whites) stay as they are. To offer items that recolor nicely,
+draw them in one color with dark outlines. You can still add separate images
+for each color if you prefer.
 
 Example:
 	The alien has 2 skin color options, 2 face options and multiple hair options.
@@ -110,11 +115,9 @@ Don't be afraid to experiment! Godot has plenty of options to fiddle with even w
 ####################################
 
 When you press the "play" button in Godot's top right corner, your new dress-up game should start!
-Note that there may be duplicate items in the menus when the game is run inside the editor.
 Hover over the buttons next to the "play" button to see what the other icons mean.
 Find "Remote deploy > Run in browser" near the "play" button to see what the game would 
-look like after exporting. When you run the game in browser, the duplicate menu items 
-should not be visible anymore.
+look like after exporting.
 
 
 ####################################
@@ -125,3 +128,65 @@ When you're finished making your dress-up game, you can export it from Godot ( P
 Select "Web" as the export preset if you want to publish it on itch.io, and name the file "index.html".
 I like to Export... > Export project... to an empty folder. 
 Then just zip those files, and upload the zip to itch.io as a playable html file.
+
+
+####################################
+#### Extra features
+####################################
+
+Layers:
+- Backgrounds (folders starting with 00) and the doll's body (the first folder
+  after the backgrounds, 01Skin in the example) always show something.
+  The game starts with the first image of each of these.
+- Every other layer gets a "nothing" button, so items can be taken off.
+- Images can be png, jpg, jpeg, webp or svg. A file named icon.png is the
+  category button, not an item.
+- Item buttons zoom in on the drawn part of each image, so small items
+  are easy to see. The doll still uses the whole image.
+
+Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
+"ToolButton" style in theme.tres):
+- Undo / Redo (also Ctrl+Z and Ctrl+Shift+Z), Random, Reset
+- The speaker button turns sound on and off (remembered for next time)
+- Save keeps the outfit with a small picture; Outfits lists saved outfits
+- Share gives a code (starting with DU1-) that a friend can paste to wear the same outfit
+- Photo saves a picture without the menus (a download in the browser)
+- AI Create makes a new background or sticker from a description (see below)
+
+Stickers:
+The star category button (the last one) holds stickers: accessories that can be
+placed anywhere on the doll, unlike layers.
+- Click a sticker in the menu to put it on the doll. Drag it to move it.
+- Drag the round handle at its corner to resize and turn it.
+  The mouse wheel also resizes it, and Shift + mouse wheel turns it.
+- The red handle (or the Delete key) takes it off. Clicking a sticker brings it to the front.
+- Add your own sticker art to the "stickers" folder (transparent png or svg, any size).
+  An icon.png in that folder replaces the star category button.
+- Stickers are saved with outfits and included in share codes.
+
+Saved outfits, photos and AI pictures are stored in the player's user:// folder
+(in the browser's storage for web games), never in the game files.
+
+AI backgrounds and stickers:
+The AI Create window (also opened by the sparkle button in the background and
+sticker menus) uses OpenRouter ( https://openrouter.ai ), which offers
+many image models with one account. Each player pastes their own OpenRouter API key
+(from https://openrouter.ai/keys); it is only stored on their device.
+New backgrounds are added to the first background folder's menu, new stickers to the
+sticker menu, and both are kept for next time. They have a small "x" button for deleting them.
+- Stickers need a picture without a background. Models marked "(transparent)" in the list
+  can make one (the default is openai/gpt-image-1-mini). With other models the game asks
+  for a plain white background and removes it, which works best for items with an outline.
+- Change the default models and the text added to every prompt by selecting
+  Popups/AICreateDialog in dress_up.tscn and editing it in the Inspector.
+- Styles are listed at the top of script/ai_create_dialog.gd.
+- Don't put your own API key into the game files: anyone can read it from an
+  exported game. To pay for players' images yourself, run a small proxy server
+  that holds the key, and set "Base Url" on the OpenRouterClient node
+  (inside GUI/ai_create_dialog.tscn) to the proxy's address.
+
+Sounds:
+The game makes its own small sound effects (pop, click, shutter, sparkle) with code
+( script/sound_effects.gd ), so no audio files are needed. To use your own, make a
+"sounds" folder and add files with those names, for example sounds/pop.ogg or
+sounds/click.wav. They are used instead of the built-in sounds automatically.

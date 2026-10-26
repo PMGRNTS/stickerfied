@@ -9,6 +9,11 @@
 [ext_resource type="Texture2D" uid="uid://ng4fxi4i0c6b" path="res://images/00Backgrounds/lines.jpg" id="6_218i8"]
 [ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="7_218i8"]
 [ext_resource type="Texture2D" uid="uid://ckkgvq5vqgg1b" path="res://GUI/example_icon.png" id="8_218i8"]
+[ext_resource type="PackedScene" path="res://GUI/toolbar.tscn" id="9_toolbar"]
+[ext_resource type="PackedScene" path="res://GUI/outfit_gallery.tscn" id="10_gallery"]
+[ext_resource type="PackedScene" path="res://GUI/share_dialog.tscn" id="11_share"]
+[ext_resource type="PackedScene" path="res://GUI/ai_create_dialog.tscn" id="12_ai"]
+[ext_resource type="Script" path="res://script/sticker_stage.gd" id="13_stickers"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -16,9 +21,10 @@ button_base = ExtResource("2_ihm3m")
 category_button = ExtResource("3_patwh")
 tab_of_buttons = ExtResource("1_pm0by")
 
-[node name="Interactivity" type="Node" parent="." unique_id=1941779067]
+[node name="Interactivity" type="Node" parent="." unique_id=1941779067 node_paths=PackedStringArray("sticker_stage")]
 unique_name_in_owner = true
 script = ExtResource("4_l5b77")
+sticker_stage = NodePath("../StickerStage")
 
 [node name="BGHolder" type="Node2D" parent="." unique_id=254551110]
 
@@ -29,6 +35,12 @@ centered = false
 [node name="SpriteHolder" type="Node2D" parent="." unique_id=651944551]
 unique_name_in_owner = true
 
+[node name="StickerStage" type="Node2D" parent="." node_paths=PackedStringArray("interactivity", "spawn_point")]
+z_index = 100
+script = ExtResource("13_stickers")
+interactivity = NodePath("../Interactivity")
+spawn_point = NodePath("../SpritePlaceholder")
+
 [node name="DressupMenu" type="Control" parent="." unique_id=1380275446]
 unique_name_in_owner = true
 layout_mode = 3
@@ -37,6 +49,7 @@ anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+mouse_filter = 2
 size_flags_horizontal = 3
 size_flags_vertical = 3
 theme = ExtResource("7_218i8")
@@ -109,3 +122,23 @@ layout_mode = 2
 unique_name_in_owner = true
 position = Vector2(261, 296)
 texture = ExtResource("3_ihm3m")
+
+[node name="Toolbar" parent="DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "sticker_stage") instance=ExtResource("9_toolbar")]
+layout_mode = 1
+interactivity = NodePath("../../Interactivity")
+ui_root = NodePath("..")
+outfit_gallery = NodePath("../../Popups/OutfitGallery")
+share_dialog = NodePath("../../Popups/ShareDialog")
+ai_create_dialog = NodePath("../../Popups/AICreateDialog")
+sticker_stage = NodePath("../../StickerStage")
+
+[node name="Popups" type="CanvasLayer" parent="."]
+
+[node name="OutfitGallery" parent="Popups" node_paths=PackedStringArray("interactivity") instance=ExtResource("10_gallery")]
+interactivity = NodePath("../../Interactivity")
+
+[node name="ShareDialog" parent="Popups" node_paths=PackedStringArray("interactivity") instance=ExtResource("11_share")]
+interactivity = NodePath("../../Interactivity")
+
+[node name="AICreateDialog" parent="Popups" node_paths=PackedStringArray("interactivity") instance=ExtResource("12_ai")]
+interactivity = NodePath("../../Interactivity")
