@@ -4,9 +4,14 @@
 # All layers bend the same way, so clothes still fit the reshaped body.
 #
 # Areas all work on the doll as it is drawn, so their order doesn't matter.
-# Strips are applied after them, from the top of the list down.
+# Turns are applied after them, from the top of the list down (put the head
+# before the body leaning, so the head turns on the neck and then leans with the body).
+# Strips come last, so a taller doll still has its head on its neck.
 
 extends Node2D
+
+# Sent whenever the doll's shape changes, so the stickers can follow it
+signal shape_changed
 
 const BodyControl = preload("res://script/body_control.gd")
 
@@ -91,6 +96,39 @@ func hold_neutral(on:bool) -> void:
 func shaped(point:Vector2) -> Vector2:
 	return _shaped(point, _active())
 
+# How the doll's shape moves a point: where it goes ("position"),
+# and how much the doll turns ("angle", in radians) and grows ("scale") there.
+# Stickers use this to move, turn and grow with the part of the doll they are on.
+func pose_at(point:Vector2) -> Dictionary:
+	var active = _active()
+	if active.is_empty():
+		return {"position": point, "angle": 0.0, "scale": 1.0}
+	var position = _shaped(point, active)
+	var across = _shaped(point + Vector2.RIGHT, active) - position
+	var down = _shaped(point + Vector2.DOWN, active) - position
+	return {"position": position, "angle": atan2(across.y - down.x, across.x + down.y),
+		"scale": sqrt(absf(across.cross(down)))}
+
+# The point on the doll as drawn that the shape moves to point (the opposite of shaped())
+func unshaped(point:Vector2) -> Vector2:
+	var active = _active()
+	if active.is_empty():
+		return point
+	var guess = point
+	for i in 10:
+		var miss = _shaped(guess, active) - point
+		if miss.length() < 0.01:
+			break
+		# step back along the shape's slope at the guess (Newton's method)
+		var across = _shaped(guess + Vector2.RIGHT, active) - _shaped(guess, active)
+		var down = _shaped(guess + Vector2.DOWN, active) - _shaped(guess, active)
+		var slope = across.cross(down)
+		if absf(slope) < 0.000001:
+			guess -= miss
+		else:
+			guess -= Vector2(down.y * miss.x - down.x * miss.y, across.x * miss.y - across.y * miss.x) / slope
+	return guess
+
 # The controls whose slider isn't in the middle, with their values
 func _active() -> Array:
 	var active := []
@@ -107,9 +145,10 @@ func _shaped(point:Vector2, active:Array) -> Vector2:
 	for entry in active:
 		if entry[0].shape == BodyControl.Shape.AREA:
 			moved += entry[0].shaped(point, entry[1]) - point
-	for entry in active:
-		if entry[0].shape == BodyControl.Shape.STRIP:
-			moved = entry[0].shaped(moved, entry[1])
+	for shape in [BodyControl.Shape.TURN, BodyControl.Shape.STRIP]:
+		for entry in active:
+			if entry[0].shape == shape:
+				moved = entry[0].shaped(moved, entry[1])
 	return moved
 
 func _update() -> void:
@@ -125,3 +164,4 @@ func _update() -> void:
 			points[i] = from_screen * _shaped(to_screen * rest[i], active)
 	for layer in layers:
 		layer.set_points(points)
+	shape_changed.emit()

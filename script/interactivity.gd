@@ -9,7 +9,8 @@
 # "hue" is -1 for original colors, or 0..1 for a recolor.
 # Stickers placed on the doll are kept in a list under "_stickers":
 #   "_stickers": [{"id": "heart.svg", "x": 250, "y": 120, "scale": 0.5, "rot": 0.3, "flip": false}, ...]
-# (x and y are screen positions, rot is the rotation in radians, flip mirrors the sticker)
+# (x and y are screen positions on the doll as drawn, rot is the rotation in radians,
+# flip mirrors the sticker; on a reshaped doll they move with it, see sticker_stage.gd)
 # The doll's shape (the Body menu's sliders) is kept under "_body":
 #   "_body": {"Waist": -0.3, "Eye size": 0.5}
 # Each value is from -1 to 1; sliders left in the middle (0) are left out.

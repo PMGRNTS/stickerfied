@@ -40,11 +40,12 @@ centered = false
 [node name="SpriteHolder" type="Node2D" parent="." unique_id=651944551]
 unique_name_in_owner = true
 
-[node name="StickerStage" type="Node2D" parent="." node_paths=PackedStringArray("interactivity", "spawn_point")]
+[node name="StickerStage" type="Node2D" parent="." node_paths=PackedStringArray("interactivity", "spawn_point", "body_shaper")]
 z_index = 100
 script = ExtResource("13_stickers")
 interactivity = NodePath("../Interactivity")
 spawn_point = NodePath("../SpritePlaceholder")
+body_shaper = NodePath("../BodyShaper")
 
 [node name="DressupMenu" type="Control" parent="." unique_id=1380275446]
 unique_name_in_owner = true
@@ -280,6 +281,28 @@ reach = Vector2(90, 40)
 stretch = Vector2(0.25, 0)
 move = Vector2(0, 0)
 anchor = 0
+
+[node name="HeadTilt" type="Node2D" parent="BodyShaper"]
+position = Vector2(279, 146)
+script = ExtResource("17_control")
+slider = "Head tilt"
+group = "Pose"
+shape = 2
+reach = Vector2(140, 18)
+stretch = Vector2(0, 0)
+turn = 20.0
+soft_edge = 0.3
+
+[node name="Lean" type="Node2D" parent="BodyShaper"]
+position = Vector2(286, 381)
+script = ExtResource("17_control")
+slider = "Lean"
+group = "Pose"
+shape = 2
+reach = Vector2(220, 30)
+stretch = Vector2(0, 0)
+turn = 10.0
+soft_edge = 0.4
 
 [node name="Toolbar" parent="DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage") instance=ExtResource("9_toolbar")]
 layout_mode = 1

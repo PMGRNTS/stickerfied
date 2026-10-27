@@ -8,6 +8,8 @@
 #   - the eraser handle at the top (or the E key) rubs out parts of one sticker (see picture_upload.gd)
 #   - mouse wheel resizes the selection, Shift + wheel turns it
 # Changes are sent to interactivity.gd when the player lets go, so they can be undone.
+# Stickers follow the doll's shape (the Body menu): outfits keep where each sticker is on
+# the doll as drawn, and it is shown moved, turned and grown along with that part of the doll.
 
 extends Node2D
 
@@ -17,6 +19,8 @@ signal erase_requested(index:int)
 @export var interactivity: Node
 # New stickers appear near this node (the SpritePlaceholder marks the middle of the doll)
 @export var spawn_point: Node2D
+# Reshapes the doll (see body_shaper.gd); the stickers move with it
+@export var body_shaper: Node2D
 
 const HANDLE_RADIUS := 11.0
 const FRAME_COLOR := Color(0.2, 0.33, 0.85)
@@ -32,7 +36,8 @@ const MIN_BOX_SIZE := 4.0
 
 enum Drag { NONE, MOVE, TRANSFORM, BOX }
 
-var stickers := [] # the sticker data from the outfit
+var drawn := [] # the sticker data from the outfit: where they are on the doll as drawn
+var stickers := [] # the same stickers where they are shown, on the reshaped doll
 var sprites := [] # one Sprite2D per sticker
 var selection := [] # indexes of the selected stickers, lowest first
 var drag := Drag.NONE
@@ -56,6 +61,8 @@ func _ready() -> void:
 	commit_timer.wait_time = 0.4
 	commit_timer.timeout.connect(_commit)
 	add_child(commit_timer)
+	if body_shaper:
+		body_shaper.shape_changed.connect(_follow_shape)
 
 
 #####################################
@@ -64,7 +71,8 @@ func _ready() -> void:
 
 # Called by interactivity.gd whenever the outfit changes
 func show_stickers(new_stickers:Array) -> void:
-	stickers = new_stickers.duplicate(true)
+	drawn = new_stickers.duplicate(true)
+	stickers = drawn.map(_shown)
 	while len(sprites) < len(stickers):
 		var sprite = Sprite2D.new()
 		add_child(sprite)
@@ -85,9 +93,53 @@ func _place_sprite(i:int) -> void:
 	sprites[i].rotation = stickers[i].rot
 	sprites[i].flip_h = stickers[i].get("flip", false)
 
+# Where a new sticker goes, on the doll as drawn (where outfits keep stickers)
 func new_sticker_position() -> Vector2:
 	var center = spawn_point.position if spawn_point else get_viewport_rect().size / 2
-	return center + Vector2(randf_range(-50, 50), randf_range(-140, 0))
+	var spot = center + Vector2(randf_range(-50, 50), randf_range(-140, 0))
+	return body_shaper.unshaped(spot) if body_shaper else spot
+
+# The doll changed shape: the stickers move with it
+func _follow_shape() -> void:
+	stickers = drawn.map(_shown)
+	for i in len(stickers):
+		_place_sprite(i)
+	handles.queue_redraw()
+
+# A sticker from the outfit, where it shows on the reshaped doll.
+# It remembers the sticker it was made from, see _drawn().
+func _shown(sticker:Dictionary) -> Dictionary:
+	var shown = sticker.duplicate()
+	shown.from = sticker
+	if body_shaper == null:
+		return shown
+	var pose = body_shaper.pose_at(Vector2(sticker.x, sticker.y))
+	shown.x = pose.position.x
+	shown.y = pose.position.y
+	shown.scale = sticker.scale * pose.scale
+	shown.rot = wrapf(sticker.rot + pose.angle, -PI, PI)
+	return shown
+
+# A sticker as shown, back where it is on the doll as drawn, to keep in the outfit.
+# Stickers the player didn't change keep their old place exactly.
+func _drawn(sticker:Dictionary) -> Dictionary:
+	if sticker.has("from") and _same_place(sticker, _shown(sticker.from)):
+		return sticker.from.duplicate()
+	var result = {"id": sticker.id, "x": sticker.x, "y": sticker.y, "scale": sticker.scale,
+		"rot": sticker.rot, "flip": sticker.get("flip", false)}
+	if body_shaper == null:
+		return result
+	var spot = body_shaper.unshaped(Vector2(sticker.x, sticker.y))
+	var pose = body_shaper.pose_at(spot)
+	result.x = spot.x
+	result.y = spot.y
+	result.scale = sticker.scale / maxf(pose.scale, 0.01)
+	result.rot = wrapf(sticker.rot - pose.angle, -PI, PI)
+	return result
+
+static func _same_place(a:Dictionary, b:Dictionary) -> bool:
+	return is_equal_approx(a.x, b.x) and is_equal_approx(a.y, b.y) and is_equal_approx(a.scale, b.scale) \
+		and is_equal_approx(a.rot, b.rot) and a.get("flip", false) == b.get("flip", false)
 
 # Selects one sticker, or nothing when index is -1
 func select(index:int) -> void:
@@ -344,7 +396,7 @@ func _flip_selection() -> void:
 func _commit() -> void:
 	commit_timer.stop()
 	var keep_selected = selection.duplicate()
-	interactivity.set_stickers(stickers.duplicate(true))
+	interactivity.set_stickers(stickers.map(_drawn))
 	set_selection(keep_selected)
 
 
