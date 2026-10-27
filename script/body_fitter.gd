@@ -38,7 +38,7 @@ func _ready() -> void:
 	z_index = 101 # above the doll and the stickers
 	var layer = CanvasLayer.new()
 	add_child(layer)
-	bar = _make_bar(layer, "Drag the circles onto the matching parts of your doll. The squares resize.",
+	bar = make_bar(layer, "Drag the circles onto the matching parts of your doll. The squares resize.",
 		[["Reset", _reset], ["Cancel", func(): _finish(false)], ["Done", func(): _finish(true)]])
 
 func start() -> void:
@@ -222,24 +222,33 @@ func _draw_labels(lit:Array) -> void:
 		draw_string_outline(font, baseline, spots[i].label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, 3, Color.WHITE)
 		draw_string(font, baseline, spots[i].label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, _color(spots[i]).darkened(0.3))
 
-# The strip at the top of the screen with a hint and buttons (like picture_upload.gd's)
-func _make_bar(layer:CanvasLayer, text:String, choices:Array) -> Control:
+# The panel with a hint and buttons, where the menu usually is, so the whole doll can be
+# reached (the doll goes up to the top of the screen). The sculpt brush (body_sculptor.gd)
+# uses it too; its buttons are in the panel's "row" meta.
+static func make_bar(layer:CanvasLayer, text:String, choices:Array) -> Control:
 	var holder = MarginContainer.new()
 	holder.theme = preload("res://theme.tres")
-	holder.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
-	holder.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	holder.add_theme_constant_override("margin_top", 12)
+	holder.set_anchors_and_offsets_preset(Control.PRESET_TOP_RIGHT)
+	holder.grow_horizontal = Control.GROW_DIRECTION_BEGIN
+	holder.add_theme_constant_override("margin_top", 80)
+	holder.add_theme_constant_override("margin_right", 50)
 	layer.add_child(holder)
 	var panel = PanelContainer.new()
 	panel.theme_type_variation = &"Toast"
 	holder.add_child(panel)
-	var row = HBoxContainer.new()
-	row.add_theme_constant_override("separation", 10)
-	panel.add_child(row)
+	var column = VBoxContainer.new()
+	column.add_theme_constant_override("separation", 10)
+	panel.add_child(column)
 	var hint = Label.new()
 	hint.theme_type_variation = &"ToastLabel"
 	hint.text = text
-	row.add_child(hint)
+	hint.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	hint.custom_minimum_size = Vector2(240, 0)
+	column.add_child(hint)
+	var row = HFlowContainer.new()
+	row.add_theme_constant_override("h_separation", 8)
+	row.add_theme_constant_override("v_separation", 8)
+	column.add_child(row)
 	for choice in choices:
 		var button = Button.new()
 		button.theme_type_variation = &"ToolButton"
@@ -247,5 +256,6 @@ func _make_bar(layer:CanvasLayer, text:String, choices:Array) -> Control:
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(choice[1])
 		row.add_child(button)
+	holder.set_meta("row", row)
 	holder.hide()
 	return holder

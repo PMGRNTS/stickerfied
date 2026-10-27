@@ -12,8 +12,9 @@
 # (x and y are screen positions on the doll as drawn, rot is the rotation in radians,
 # flip mirrors the sticker; on a reshaped doll they move with it, see sticker_stage.gd)
 # The doll's shape (the Body menu's sliders) is kept under "_body":
-#   "_body": {"Waist": -0.3, "Eye size": 0.5}
+#   "_body": {"Waist": -0.3, "Eye size": 0.5, "_sculpt": {"412": [3.5, -1.0], ...}}
 # Each value is from -1 to 1; sliders left in the middle (0) are left out.
+# "_sculpt" is what the sculpt brush pushed, see body_sculpt.gd.
 
 extends Node
 
@@ -279,6 +280,11 @@ func cleaned_outfit(new_outfit:Dictionary) -> Dictionary:
 			value = snappedf(clampf(value, -1.0, 1.0), 0.01)
 			if value != 0.0:
 				result[BODY][slider] = value
+	# and the sculpt brush's pushes
+	if body_shaper and body is Dictionary and body.has(body_shaper.SCULPT):
+		var sculpt = body_shaper.cleaned_sculpt(body[body_shaper.SCULPT])
+		if not sculpt.is_empty():
+			result[BODY][body_shaper.SCULPT] = sculpt
 	return result
 
 static func is_background(layer:String) -> bool:

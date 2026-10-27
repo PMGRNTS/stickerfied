@@ -3,7 +3,8 @@
 # and the controls under this node (body_control.gd) move those points.
 # All layers bend the same way, so clothes still fit the reshaped body.
 #
-# Areas are applied first, from the top of the list down, then turns, then strips.
+# The sculpt brush's pushes come first (see body_sculpt.gd), so the sliders work on the
+# sculpted doll. Then areas, from the top of the list down, then turns, then strips.
 # Each area and turn moves along with the parts the ones above it moved, so list
 # bigger parts first: the head before the eyes on it (the eyes' areas follow the eyes
 # when the head grows), and the head's turn before the whole body leaning.
@@ -27,6 +28,9 @@ extends Node2D
 signal shape_changed
 
 const BodyControl = preload("res://script/body_control.gd")
+const BodySculpt = preload("res://script/body_sculpt.gd")
+# Where outfits keep the sculpt brush's pushes, among the sliders' values
+const SCULPT := "_sculpt"
 const FIT_FILE := "user://body_fit.json"
 # Areas smaller than this many grid squares get extra points, this many per square
 const SMALL_AREA := 3.0
@@ -60,7 +64,9 @@ var rest := PackedVector2Array() # the grid points before any reshaping, in a la
 var uvs := PackedVector2Array() # where each grid point is in the doll's images (0 to 1)
 var shaped_points := PackedVector2Array() # the grid points on the reshaped doll, standing still
 var moving := PackedInt32Array() # the grid points that blinking and breathing move
-var values := {} # slider name -> -1..1, what the doll shows now
+var values := {} # slider name -> -1..1, what the doll shows now, and the sculpt as "_sculpt"
+var sculpt: BodySculpt # the sculpt brush's pushes shown now
+var sculpted := false # true when the sculpt has any pushes
 var neutral := false # while true the doll is shown as drawn (see hold_neutral)
 
 var can_blink := false # true when a control has the blink slider
@@ -89,6 +95,7 @@ func setup(doll_layers:Array, placeholder:Sprite2D) -> void:
 	middle = placeholder.offset + (Vector2.ZERO if placeholder.centered else image_size / 2)
 	for layer in layers:
 		layer.offset = middle
+	sculpt = BodySculpt.new(middle - image_size / 2, image_size, to_screen)
 	for control in controls():
 		defaults[control.name] = [control.global_position, control.reach]
 	if FileAccess.file_exists(FIT_FILE):
@@ -126,9 +133,26 @@ func slider_names() -> Array:
 	return names
 
 # Shows the doll with these slider values (slider name -> -1..1, missing ones are 0)
+# and sculpt (under "_sculpt")
 func show_values(new_values:Dictionary) -> void:
 	values = new_values.duplicate()
+	if sculpt:
+		sculpt.load_saved(values.get(SCULPT))
+		sculpted = not sculpt.is_empty()
 	_update()
+
+# Shows the sculpt after the sculpt brush changed it (see body_sculptor.gd)
+func show_sculpt() -> void:
+	sculpted = not sculpt.is_empty()
+	_update()
+
+# An outfit's "_sculpt" with only the pushes this game can show, or {} for none
+func cleaned_sculpt(saved) -> Dictionary:
+	if sculpt == null:
+		return {}
+	var check = BodySculpt.new(sculpt.corner, image_size, to_screen)
+	check.load_saved(saved)
+	return check.to_saved()
 
 # Shows the doll as drawn while on is true, for example while the player places a picture
 # on it: pictures are added to the doll's images as drawn, so they must line up with that.
@@ -289,6 +313,8 @@ func _active(closed := 0.0, inhaled := 0.0) -> Array:
 		shown[blink_slider] = lerpf(clampf(float(shown.get(blink_slider, 0.0)), -1.0, 1.0), 1.0, closed)
 	if can_breathe:
 		shown[breathe_slider] = inhaled
+	if sculpted:
+		active.append([sculpt, 1.0, Vector2.ZERO])
 	for shape in [BodyControl.Shape.AREA, BodyControl.Shape.TURN, BodyControl.Shape.STRIP]:
 		for control in controls():
 			var value = clampf(float(shown.get(control.slider, 0.0)), -1.0, 1.0)

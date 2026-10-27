@@ -192,7 +192,7 @@ The doll blinks and breathes, and long hair swings when the doll moves.
 Every layer bends the same way, so the hair, face and clothes still fit, and
 stickers move, turn and grow with the part of the doll they are on.
 Dragging a slider shows the change; letting go puts it on, so it can be undone.
-Double-click a slider (or press "As drawn") to put it back.
+Double-click a slider to put it back; "As drawn" puts everything back, sculpting too.
 The shape is saved with outfits and included in share codes, and Random leaves it alone.
 - Fit points (in the Body menu) lets players move the sliders' points onto their own doll,
   for bodies that aren't shaped like the one the points were placed on, such as a body
@@ -201,6 +201,12 @@ The shape is saved with outfits and included in share codes, and Random leaves i
   onto the matching part of the doll, and drag its small square to make its area bigger
   or smaller. Done keeps the fit, Reset puts the points back, Cancel (or Escape) forgets
   the changes. Each body picture keeps its own fit, on the player's device only.
+- Sculpt (in the Body menu) is a brush for pushing the doll into any shape: drag on the
+  doll to push it, and size the brush with the slider or the mouse wheel. With Restore on,
+  the brush eases pushed parts back to how they were drawn. Undo takes back a stroke and
+  Clear all of them. Done puts the sculpting on (it can be undone like any change, and is
+  saved with outfits and share codes); Cancel (or Escape) forgets it. The sliders still
+  work on the sculpted doll, and every layer and sticker follows it.
 - The sliders come from the "controls" under the BodyShaper node in dress_up.tscn.
   Each one is drawn as an oval or lines over the doll in the editor; move
   them over the matching part of your own doll, or add more. Select one to set it

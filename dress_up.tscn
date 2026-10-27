@@ -19,6 +19,7 @@
 [ext_resource type="Script" path="res://script/body_shaper.gd" id="16_shaper"]
 [ext_resource type="Script" path="res://script/body_control.gd" id="17_control"]
 [ext_resource type="Script" path="res://script/body_fitter.gd" id="18_fitter"]
+[ext_resource type="Script" path="res://script/body_sculptor.gd" id="19_sculptor"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -360,6 +361,13 @@ soft_edge = 0.4
 [node name="BodyFitter" type="Node2D" parent="." node_paths=PackedStringArray("body_shaper", "ui_root", "sticker_stage")]
 unique_name_in_owner = true
 script = ExtResource("18_fitter")
+body_shaper = NodePath("../BodyShaper")
+ui_root = NodePath("../DressupMenu")
+sticker_stage = NodePath("../StickerStage")
+
+[node name="BodySculptor" type="Node2D" parent="." node_paths=PackedStringArray("body_shaper", "ui_root", "sticker_stage")]
+unique_name_in_owner = true
+script = ExtResource("19_sculptor")
 body_shaper = NodePath("../BodyShaper")
 ui_root = NodePath("../DressupMenu")
 sticker_stage = NodePath("../StickerStage")
