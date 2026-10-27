@@ -33,6 +33,8 @@ func load_code() -> void:
 	for layer in outfit:
 		if layer == interactivity.STICKERS:
 			missing += len(outfit[layer]) - len(worn[layer])
+		elif layer == interactivity.BODY:
+			continue
 		elif outfit[layer].item != "" and worn.get(layer, {}).get("item", "") != outfit[layer].item:
 			missing += 1
 	%StatusLabel.text = "Outfit loaded!" if missing == 0 else \

@@ -17,3 +17,12 @@ signal dressup_color_signal(layer, hue)
 # The doll shows the color, but the outfit doesn't change yet.
 @warning_ignore("unused_signal")
 signal dressup_color_preview_signal(layer, hue)
+
+# Sent by the Body menu's sliders with every slider's value (name -> -1..1)
+# when the player lets go of a slider, so the doll's new shape can be undone.
+@warning_ignore("unused_signal")
+signal dressup_body_signal(values)
+
+# Sent while a Body slider is dragged: the doll shows the shape, but the outfit doesn't change yet.
+@warning_ignore("unused_signal")
+signal dressup_body_preview_signal(values)

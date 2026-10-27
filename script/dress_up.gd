@@ -7,6 +7,7 @@ extends Node
 @onready var dressup_menu: Control = %DressupMenu
 @onready var sprite_placeholder: Sprite2D = %SpritePlaceholder
 @onready var sprite_holder: Node2D = %SpriteHolder
+@onready var body_shaper: Node2D = %BodyShaper
 
 @onready var category_buttons: HBoxContainer = %CategoryButtons
 @onready var tabs_of_items_container: CenterContainer = %TabsOfItemsContainer
@@ -25,6 +26,8 @@ const IMAGE_EXTENSIONS := ["png", "jpg", "jpeg", "webp", "svg"]
 const RECOLOR_SHADER = preload("res://shaders/recolor.gdshader")
 # Stickers can be placed anywhere on the doll. Put your own sticker art in this folder.
 const STICKER_FOLDER := "res://stickers"
+# Draws a layer of the doll so it can be reshaped (see body_shaper.gd)
+const DollLayer = preload("res://script/doll_layer.gd")
 
 # Called when the node enters the scene tree for the first time.
 func _ready() -> void:
@@ -48,7 +51,9 @@ func _ready() -> void:
 
 		### Add a sprite to the scene for each of the folders
 		### These will later be used to display the images of
-		### dressup items as user clicks on the buttons
+		### dressup items as user clicks on the buttons.
+		### The doll's layers are drawn where the SpritePlaceholder is,
+		### and can be reshaped with the Body menu.
 		var new_layer
 		#	if background layer (they should start with 00),
 		#	reset position to cover entire screen:
@@ -57,7 +62,9 @@ func _ready() -> void:
 			new_layer.centered = false
 			$BGHolder.add_child(new_layer)
 		else:
-			new_layer = sprite_placeholder.duplicate()
+			new_layer = DollLayer.new()
+			new_layer.transform = sprite_placeholder.transform
+			new_layer.modulate = sprite_placeholder.modulate
 			new_layer.z_index = len(interactivity.layer_nodes)
 			new_layer.name = file_name
 			sprite_holder.add_child(new_layer)
@@ -99,6 +106,7 @@ func _ready() -> void:
 
 	# The placeholder is only used to position the doll in the editor
 	sprite_placeholder.visible = false
+	body_shaper.setup(interactivity.layer_nodes.filter(func(node): return node is DollLayer), sprite_placeholder)
 	print_debug("Folder names were read, found ", len(interactivity.layers),";  ", interactivity.layers)
 
 
@@ -140,6 +148,7 @@ func _ready() -> void:
 		c.add_upload_button()
 	
 	add_sticker_category()
+	add_body_category()
 	
 	# Tell interactivity to initiate the first view
 	interactivity.start_game()
@@ -172,6 +181,33 @@ func add_sticker_category() -> void:
 		var picture = GeneratedItems.load_texture(path)
 		if picture:
 			newtab.add_item(picture, path)
+
+
+#####################################
+############## BODY #################
+#####################################
+### The Body menu has sliders that reshape the doll, one for each
+### slider name given to the controls under BodyShaper (see body_control.gd).
+### Without any controls, there is no Body menu.
+func add_body_category() -> void:
+	var groups = body_shaper.slider_groups()
+	if groups.is_empty():
+		return
+	var newbutton = category_button.instantiate()
+	var icon_path = "res://GUI/body_icon.svg"
+	newbutton.icon = load(icon_path) if ResourceLoader.exists(icon_path) else load("res://GUI/example_icon.png")
+	newbutton.name = "Body"
+	newbutton.category = interactivity.BODY
+	newbutton.tooltip_text = "Body"
+	category_buttons.add_child(newbutton)
+
+	var newtab = VBoxContainer.new()
+	newtab.set_script(preload("res://script/body_tab.gd"))
+	newtab.name = "Body"
+	newtab.layer = interactivity.BODY
+	tabs_of_items_container.add_child(newtab)
+	newtab.build(groups)
+	interactivity.body_tab = newtab
 
 
 func read_files_in_folder(tab_node:Node, path:String) -> String:

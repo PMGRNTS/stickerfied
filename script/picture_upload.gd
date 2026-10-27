@@ -17,6 +17,8 @@ extends Node2D
 @export var interactivity: Node
 # The doll's layers; the picture being placed is shown among them
 @export var sprite_holder: Node2D
+# The doll is shown as drawn while a picture is placed, since that's the shape it is added to
+@export var body_shaper: Node2D
 # Hidden while a picture is placed, so the outfit can't change meanwhile
 @export var ui_root: Control
 @export var sticker_stage: Node2D
@@ -24,6 +26,7 @@ extends Node2D
 @export var toolbar: Control
 
 const AICreateDialog = preload("res://script/ai_create_dialog.gd")
+const DollLayer = preload("res://script/doll_layer.gd")
 const EXTENSIONS := ["png", "jpg", "jpeg", "webp", "svg"]
 # Bigger pictures are made smaller first, so they don't slow the game down
 const MAX_UPLOAD_SIZE := 2048
@@ -68,7 +71,7 @@ var placing_image: Image
 var placing_description := ""
 var placing_prefix := "upload" # start of the saved file's name, see GeneratedItems.save()
 var preview: Sprite2D # shown on the doll, in the layer's place
-var layer_sprite: Sprite2D # the layer's own sprite, hidden meanwhile
+var layer_sprite: DollLayer # the layer's own picture on the doll, hidden meanwhile
 var drag := Drag.NONE
 var drag_start_point := Vector2.ZERO
 var drag_start_position := Vector2.ZERO
@@ -231,6 +234,7 @@ func start_placing(layer:String, image:Image, description:String, prefix := "upl
 	preview.material = layer_sprite.material # so it shows the layer's color too
 	sprite_holder.add_child(preview)
 	layer_sprite.hide()
+	body_shaper.hold_neutral(true)
 
 	var doll = _doll_rect()
 	var picture_size = Vector2(image.get_size())
@@ -261,6 +265,7 @@ func _end_placing() -> void:
 	drag = Drag.NONE
 	preview.queue_free()
 	layer_sprite.visible = layer_sprite.texture != null
+	body_shaper.hold_neutral(false)
 	ui_root.show()
 	sticker_stage.show()
 	bar.hide()

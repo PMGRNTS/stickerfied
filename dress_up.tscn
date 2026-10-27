@@ -16,6 +16,8 @@
 [ext_resource type="Script" path="res://script/sticker_stage.gd" id="13_stickers"]
 [ext_resource type="PackedScene" path="res://GUI/ai_stylist_dialog.tscn" id="14_stylist"]
 [ext_resource type="Script" path="res://script/picture_upload.gd" id="15_upload"]
+[ext_resource type="Script" path="res://script/body_shaper.gd" id="16_shaper"]
+[ext_resource type="Script" path="res://script/body_control.gd" id="17_control"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -23,10 +25,11 @@ button_base = ExtResource("2_ihm3m")
 category_button = ExtResource("3_patwh")
 tab_of_buttons = ExtResource("1_pm0by")
 
-[node name="Interactivity" type="Node" parent="." unique_id=1941779067 node_paths=PackedStringArray("sticker_stage")]
+[node name="Interactivity" type="Node" parent="." unique_id=1941779067 node_paths=PackedStringArray("sticker_stage", "body_shaper")]
 unique_name_in_owner = true
 script = ExtResource("4_l5b77")
 sticker_stage = NodePath("../StickerStage")
+body_shaper = NodePath("../BodyShaper")
 
 [node name="BGHolder" type="Node2D" parent="." unique_id=254551110]
 
@@ -125,6 +128,159 @@ unique_name_in_owner = true
 position = Vector2(261, 296)
 texture = ExtResource("3_ihm3m")
 
+[node name="BodyShaper" type="Node2D" parent="."]
+unique_name_in_owner = true
+script = ExtResource("16_shaper")
+
+[node name="HeadSize" type="Node2D" parent="BodyShaper"]
+position = Vector2(256, 88)
+script = ExtResource("17_control")
+slider = "Head size"
+group = "Body"
+shape = 0
+reach = Vector2(110, 110)
+stretch = Vector2(0.35, 0.35)
+move = Vector2(0, 0)
+anchor = 0
+
+[node name="Shoulders" type="Node2D" parent="BodyShaper"]
+position = Vector2(283, 176)
+script = ExtResource("17_control")
+slider = "Shoulders"
+group = "Body"
+shape = 0
+reach = Vector2(150, 70)
+stretch = Vector2(0.4, 0)
+move = Vector2(0, 0)
+anchor = 0
+
+[node name="Waist" type="Node2D" parent="BodyShaper"]
+position = Vector2(286, 296)
+script = ExtResource("17_control")
+slider = "Waist"
+group = "Body"
+shape = 0
+reach = Vector2(75, 60)
+stretch = Vector2(0.45, 0)
+move = Vector2(0, 0)
+anchor = 0
+
+[node name="Hips" type="Node2D" parent="BodyShaper"]
+position = Vector2(283, 381)
+script = ExtResource("17_control")
+slider = "Hips"
+group = "Body"
+shape = 0
+reach = Vector2(80, 55)
+stretch = Vector2(0.45, 0)
+move = Vector2(0, 0)
+anchor = 0
+
+[node name="Legs" type="Node2D" parent="BodyShaper"]
+position = Vector2(261, 466)
+script = ExtResource("17_control")
+slider = "Legs"
+group = "Body"
+shape = 1
+reach = Vector2(150, 80)
+stretch = Vector2(0, 0.25)
+move = Vector2(0, 0)
+anchor = 2
+
+[node name="Height" type="Node2D" parent="BodyShaper"]
+position = Vector2(261, 306)
+script = ExtResource("17_control")
+slider = "Height"
+group = "Body"
+shape = 1
+reach = Vector2(150, 272)
+stretch = Vector2(0, 0.1)
+move = Vector2(0, 0)
+anchor = 2
+
+[node name="EyeSizeLeft" type="Node2D" parent="BodyShaper"]
+position = Vector2(217, 70)
+script = ExtResource("17_control")
+slider = "Eye size"
+group = "Face"
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0.4, 0.4)
+move = Vector2(0, 0)
+anchor = 0
+soft_edge = 0.5
+
+[node name="EyeSizeRight" type="Node2D" parent="BodyShaper"]
+position = Vector2(260, 70)
+script = ExtResource("17_control")
+slider = "Eye size"
+group = "Face"
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0.4, 0.4)
+move = Vector2(0, 0)
+anchor = 0
+soft_edge = 0.5
+
+[node name="EyeSpacingLeft" type="Node2D" parent="BodyShaper"]
+position = Vector2(217, 70)
+script = ExtResource("17_control")
+slider = "Eye spacing"
+group = "Face"
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0, 0)
+move = Vector2(-6, 0)
+anchor = 0
+soft_edge = 0.5
+
+[node name="EyeSpacingRight" type="Node2D" parent="BodyShaper"]
+position = Vector2(260, 70)
+script = ExtResource("17_control")
+slider = "Eye spacing"
+group = "Face"
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0, 0)
+move = Vector2(6, 0)
+anchor = 0
+soft_edge = 0.5
+
+[node name="MouthSize" type="Node2D" parent="BodyShaper"]
+position = Vector2(245, 98)
+script = ExtResource("17_control")
+slider = "Mouth size"
+group = "Face"
+shape = 0
+reach = Vector2(55, 24)
+stretch = Vector2(0.4, 0.15)
+move = Vector2(0, 0)
+anchor = 0
+soft_edge = 0.6
+
+[node name="MouthHeight" type="Node2D" parent="BodyShaper"]
+position = Vector2(245, 98)
+script = ExtResource("17_control")
+slider = "Mouth height"
+group = "Face"
+shape = 0
+reach = Vector2(60, 30)
+stretch = Vector2(0, 0)
+move = Vector2(0, -6)
+anchor = 0
+soft_edge = 0.5
+
+[node name="Cheeks" type="Node2D" parent="BodyShaper"]
+position = Vector2(256, 126)
+script = ExtResource("17_control")
+slider = "Cheeks"
+group = "Face"
+shape = 0
+reach = Vector2(90, 40)
+stretch = Vector2(0.25, 0)
+move = Vector2(0, 0)
+anchor = 0
+
 [node name="Toolbar" parent="DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage") instance=ExtResource("9_toolbar")]
 layout_mode = 1
 interactivity = NodePath("../../Interactivity")
@@ -151,10 +307,11 @@ picture_upload = NodePath("../../PictureUpload")
 interactivity = NodePath("../../Interactivity")
 toolbar = NodePath("../../DressupMenu/Toolbar")
 
-[node name="PictureUpload" type="Node2D" parent="." node_paths=PackedStringArray("interactivity", "sprite_holder", "ui_root", "sticker_stage", "toolbar")]
+[node name="PictureUpload" type="Node2D" parent="." node_paths=PackedStringArray("interactivity", "sprite_holder", "body_shaper", "ui_root", "sticker_stage", "toolbar")]
 script = ExtResource("15_upload")
 interactivity = NodePath("../Interactivity")
 sprite_holder = NodePath("../SpriteHolder")
+body_shaper = NodePath("../BodyShaper")
 ui_root = NodePath("../DressupMenu")
 sticker_stage = NodePath("../StickerStage")
 toolbar = NodePath("../DressupMenu/Toolbar")

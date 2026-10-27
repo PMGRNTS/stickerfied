@@ -46,8 +46,11 @@ static func _write_index(all:Array) -> void:
 # and written as text. Empty layers are left out to keep the code short.
 # Stickers are stored as "_stickers": [["heart.svg", x, y, scale, rotation], ...]
 # with a 1 added at the end of mirrored stickers: ["heart.svg", x, y, scale, rotation, 1]
+# The doll's shape is stored as "_body": {"Waist": -0.3, ...} (games made before the
+# Body menu skip it, so their codes and these codes still work in both)
 
 const STICKERS := "_stickers"
+const BODY := "_body"
 
 static func to_share_code(outfit:Dictionary) -> String:
 	var compact := {}
@@ -60,6 +63,9 @@ static func to_share_code(outfit:Dictionary) -> String:
 					if sticker.get("flip", false):
 						packed.append(1)
 					return packed)
+		elif layer == BODY:
+			if not entry.is_empty():
+				compact[BODY] = entry
 		elif entry.item != "" or entry.hue >= 0:
 			compact[layer] = [entry.item, snappedf(entry.hue, 0.001)]
 	var bytes = JSON.stringify(compact).to_utf8_buffer()
@@ -90,6 +96,8 @@ static func from_share_code(code:String) -> Dictionary:
 				if sticker is Array and len(sticker) in [5, 6]:
 					outfit[STICKERS].append({"id": str(sticker[0]), "x": sticker[1], "y": sticker[2],
 						"scale": sticker[3], "rot": sticker[4], "flip": len(sticker) == 6 and sticker[5] == 1})
+		elif layer == BODY and entry is Dictionary:
+			outfit[BODY] = entry
 		elif entry is Array and len(entry) == 2:
 			outfit[layer] = {"item": str(entry[0]), "hue": float(entry[1])}
 	return outfit

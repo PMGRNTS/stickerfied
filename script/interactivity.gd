@@ -10,6 +10,9 @@
 # Stickers placed on the doll are kept in a list under "_stickers":
 #   "_stickers": [{"id": "heart.svg", "x": 250, "y": 120, "scale": 0.5, "rot": 0.3, "flip": false}, ...]
 # (x and y are screen positions, rot is the rotation in radians, flip mirrors the sticker)
+# The doll's shape (the Body menu's sliders) is kept under "_body":
+#   "_body": {"Waist": -0.3, "Eye size": 0.5}
+# Each value is from -1 to 1; sliders left in the middle (0) are left out.
 
 extends Node
 
@@ -18,6 +21,7 @@ signal outfit_changed
 const NO_COLOR := -1.0
 const MAX_UNDO := 50
 const STICKERS := "_stickers"
+const BODY := "_body"
 const MAX_STICKERS := 30
 const STICKER_SCALE_LIMITS := Vector2(0.1, 6.0)
 # How big (in pixels) a new sticker is when it is first put on the doll
@@ -33,6 +37,8 @@ var layer_nodes:=[] #access to sprite layers
 var tab_nodes:=[] # access to tabs of buttons (node that contains all options for a category)
 var sticker_tab: Node # tab of buttons with the sticker choices
 @export var sticker_stage: Node2D # shows the stickers and lets the player move them
+@export var body_shaper: Node2D # reshapes the doll (see body_shaper.gd)
+var body_tab: Node # the Body menu's sliders
 
 var outfit := {}
 var undo_stack := []
@@ -46,6 +52,8 @@ func _ready():
 	SignalBus.dressup_item_signal.connect(_on_button_press)
 	SignalBus.dressup_color_signal.connect(_on_color_press)
 	SignalBus.dressup_color_preview_signal.connect(_on_color_preview)
+	SignalBus.dressup_body_signal.connect(_on_body_change)
+	SignalBus.dressup_body_preview_signal.connect(_on_body_preview)
 
 func start_game()->void:
 	outfit = starting_outfit()
@@ -63,7 +71,7 @@ func _on_button_press(node_pressed:Node, operation_name:String):
 
 	# user selected a category
 	if operation_name == "category":
-		for i in tab_nodes + [sticker_tab]:
+		for i in tab_nodes + [sticker_tab, body_tab]:
 			if i:
 				i.visible = i.layer == node_pressed.category
 		if sounds_on:
@@ -87,9 +95,19 @@ func _on_color_press(layer:String, hue:float):
 
 # Shows a color on the doll while the color slider is dragged, without changing the outfit
 func _on_color_preview(layer:String, hue:float):
-	var sprite: Sprite2D = layer_nodes[layers.find(layer)]
+	var sprite: CanvasItem = layer_nodes[layers.find(layer)]
 	sprite.material.set_shader_parameter("enabled", true)
 	sprite.material.set_shader_parameter("target_hue", hue)
+
+func _on_body_change(values:Dictionary):
+	var new_outfit = outfit.duplicate(true)
+	new_outfit[BODY] = values
+	set_outfit(new_outfit)
+	Sfx.play("click")
+
+# Shows a shape on the doll while a Body slider is dragged, without changing the outfit
+func _on_body_preview(values:Dictionary):
+	body_shaper.show_values(values)
 
 
 #####################################
@@ -101,6 +119,7 @@ func empty_outfit() -> Dictionary:
 	for layer in layers:
 		result[layer] = {"item": "", "hue": NO_COLOR}
 	result[STICKERS] = []
+	result[BODY] = {}
 	return result
 
 # The first background and the doll's body, nothing else
@@ -159,6 +178,7 @@ func randomize_outfit() -> void:
 		if not is_background(layers[i]) and randf() < 0.3:
 			new_outfit[layers[i]].hue = tab_nodes[i].SWATCH_HUES.slice(1).pick_random()
 	new_outfit[STICKERS] = outfit[STICKERS].duplicate(true) # stickers stay where they are
+	new_outfit[BODY] = outfit[BODY].duplicate() # and so does the doll's shape
 	set_outfit(new_outfit)
 
 # Adds an item that was created while playing (such as an AI background)
@@ -249,6 +269,15 @@ func cleaned_outfit(new_outfit:Dictionary) -> Dictionary:
 			"flip": sticker.get("flip") is bool and sticker.get("flip"),
 		})
 	result[STICKERS] = result[STICKERS].slice(-MAX_STICKERS)
+
+	# Only sliders this game has, from -1 to 1; ones in the middle are left out
+	var body = new_outfit.get(BODY)
+	for slider in body_shaper.slider_names() if body_shaper and body is Dictionary else []:
+		var value = body.get(slider)
+		if value is float or value is int:
+			value = snappedf(clampf(value, -1.0, 1.0), 0.01)
+			if value != 0.0:
+				result[BODY][slider] = value
 	return result
 
 static func is_background(layer:String) -> bool:
@@ -274,7 +303,7 @@ func apply_outfit(animate := true) -> void:
 	var any_changed := false
 	for i in len(layers):
 		var entry = outfit[layers[i]]
-		var sprite: Sprite2D = layer_nodes[i]
+		var sprite = layer_nodes[i] # a Sprite2D for backgrounds, a doll layer (doll_layer.gd) for the rest
 		var button = tab_nodes[i].get_item_button(entry.item)
 		var new_texture = button.image if button else null
 		var changed = sprite.texture != new_texture or sprite.visible != (new_texture != null)
@@ -289,6 +318,10 @@ func apply_outfit(animate := true) -> void:
 		if animate and changed and sprite.visible:
 			play_swap_animation(sprite)
 			any_changed = true
+	if body_shaper:
+		body_shaper.show_values(outfit[BODY])
+	if body_tab:
+		body_tab.show_values(outfit[BODY])
 	if sticker_stage:
 		sticker_stage.show_stickers(outfit[STICKERS])
 	if any_changed and sounds_on:
@@ -300,7 +333,7 @@ func apply_outfit(animate := true) -> void:
 	outfit_changed.emit()
 
 # A quick fade and "pop" when an item is put on
-func play_swap_animation(sprite:Sprite2D) -> void:
+func play_swap_animation(sprite:Node2D) -> void:
 	var base_scale: Vector2 = sprite.get_meta("base_scale", sprite.scale)
 	sprite.set_meta("base_scale", base_scale)
 	if sprite.has_meta("tween"):
@@ -309,7 +342,7 @@ func play_swap_animation(sprite:Sprite2D) -> void:
 	sprite.set_meta("tween", tween)
 	sprite.modulate.a = 0.3
 	tween.tween_property(sprite, "modulate:a", 1.0, 0.15)
-	if not sprite.centered:
+	if sprite is Sprite2D:
 		return # backgrounds only fade
 	sprite.scale = base_scale * 1.04
 	tween.tween_property(sprite, "scale", base_scale, 0.2).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
