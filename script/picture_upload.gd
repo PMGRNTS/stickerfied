@@ -6,6 +6,8 @@
 #     mouse wheel or the corner handle to resize, then Done (or Enter).
 #     A picture that is already the size of the doll's images is used as it is,
 #     so art drawn over the doll's template lines up by itself.
+#     Erase rubs out parts of it, such as the inside of a collar that shows above the neck.
+# Stickers on the doll can be erased the same way (the eraser handle, see sticker_stage.gd).
 # A plain background (such as white paper) is removed from stickers and doll items.
 # Pictures are kept in user://generated/ like AI pictures, so they're there next time.
 # AI Create sends the doll items it makes through the same placing step (place_picture).
@@ -31,6 +33,11 @@ const START_SIZE := 0.6
 const MIN_SIZE := 16.0
 const HANDLE_RADIUS := 11.0
 const FRAME_COLOR := Color(0.2, 0.33, 0.85)
+# Smallest and biggest eraser (its radius in pixels on screen), and the one it starts with
+const BRUSH_SIZES := Vector2(3, 60)
+const START_BRUSH := 14.0
+# How many strokes the eraser's Undo can take back
+const MAX_ERASE_UNDO := 20
 
 # The browser asks for a file with this, and sends back its name and contents (as base64)
 const WEB_PICKER := """
@@ -68,13 +75,28 @@ var drag_start_position := Vector2.ZERO
 var drag_start_scale := 1.0
 var bar: Control
 
+# While the player erases parts of a picture (see start_erasing):
+var erasing := false
+var erase_sprite: Sprite2D # shows the picture being erased
+var erase_image: Image
+var erase_texture: ImageTexture
+var erase_restore: Texture2D # the sprite's own texture, put back on Cancel
+var erase_done: Callable # gets the erased Image when the player presses Done
+var erase_undo := [] # copies of the picture from before each stroke
+var painting := false
+var paint_from := Vector2.ZERO # the last point erased, in the picture's pixels
+var cursor := Vector2.ZERO # where the eraser is drawn, on screen
+var erase_bar: Control
+var brush_slider: HSlider
+
 func _ready() -> void:
 	z_index = 101 # handles show above the stickers (StickerStage is 100)
 	SignalBus.dressup_item_signal.connect(func(button, operation):
 		if operation == "upload":
 			pick_file(button.category))
 	get_window().files_dropped.connect(_on_files_dropped)
-	_build_bar()
+	sticker_stage.erase_requested.connect(erase_sticker)
+	_build_bars()
 
 
 #####################################
@@ -105,7 +127,7 @@ func _on_web_file(args:Array) -> void:
 
 # A file dropped on the window goes to the menu that is open
 func _on_files_dropped(files:PackedStringArray) -> void:
-	if placing:
+	if placing or erasing:
 		return
 	for tab in interactivity.tab_nodes + [interactivity.sticker_tab]:
 		if tab and tab.visible:
@@ -282,11 +304,14 @@ func _resize(factor:float, from_scale:float) -> void:
 	queue_redraw()
 
 func _unhandled_input(event:InputEvent) -> void:
-	if not placing:
+	if not placing and not erasing:
 		return
-	# nothing else (stickers, undo...) reacts while a picture is being placed
+	# nothing else (stickers, undo...) reacts while a picture is being placed or erased
 	get_viewport().set_input_as_handled()
 	var point = get_canvas_transform().affine_inverse() * event.position if event is InputEventMouse else Vector2.ZERO
+	if erasing:
+		_erase_input(event, point)
+		return
 	var to_holder = sprite_holder.get_global_transform().affine_inverse()
 
 	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
@@ -321,6 +346,9 @@ func _unhandled_input(event:InputEvent) -> void:
 			cancel_placing()
 
 func _draw() -> void:
+	if erasing:
+		_draw_eraser()
+		return
 	if not placing:
 		return
 	var corners = _corners()
@@ -330,10 +358,29 @@ func _draw() -> void:
 	draw_circle(corners[2], HANDLE_RADIUS, FRAME_COLOR, false, 2.0, true)
 	draw_arc(corners[2], HANDLE_RADIUS * 0.5, -PI * 0.25, PI * 1.25, 12, FRAME_COLOR, 2.0, true)
 
-# The strip at the top of the screen with the hint and the Done / Cancel buttons
-func _build_bar() -> void:
+# The strips at the top of the screen with a hint and buttons:
+# one for placing a picture, one for erasing
+func _build_bars() -> void:
 	var layer = CanvasLayer.new()
 	add_child(layer)
+	bar = _make_bar(layer, "Drag your picture into place. Scroll or drag the corner to resize.",
+		[["Erase", _erase_placing], ["Cancel", cancel_placing], ["Done", finish_placing]])
+	erase_bar = _make_bar(layer, "Paint over the parts to erase.",
+		[["Undo", undo_erase], ["Cancel", cancel_erasing], ["Done", finish_erasing]])
+	brush_slider = HSlider.new()
+	brush_slider.min_value = BRUSH_SIZES.x
+	brush_slider.max_value = BRUSH_SIZES.y
+	brush_slider.value = START_BRUSH
+	brush_slider.custom_minimum_size = Vector2(90, 0)
+	brush_slider.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+	brush_slider.focus_mode = Control.FOCUS_NONE
+	brush_slider.tooltip_text = "Eraser size (or scroll)"
+	brush_slider.value_changed.connect(func(_value): queue_redraw())
+	var row = erase_bar.get_child(0).get_child(0)
+	row.add_child(brush_slider)
+	row.move_child(brush_slider, 1)
+
+func _make_bar(layer:CanvasLayer, text:String, choices:Array) -> Control:
 	var holder = MarginContainer.new()
 	holder.theme = preload("res://theme.tres")
 	holder.set_anchors_and_offsets_preset(Control.PRESET_CENTER_TOP)
@@ -348,14 +395,174 @@ func _build_bar() -> void:
 	panel.add_child(row)
 	var hint = Label.new()
 	hint.theme_type_variation = &"ToastLabel"
-	hint.text = "Drag your picture into place. Scroll or drag the corner to resize."
+	hint.text = text
 	row.add_child(hint)
-	for choice in [["Cancel", cancel_placing], ["Done", finish_placing]]:
+	for choice in choices:
 		var button = Button.new()
 		button.theme_type_variation = &"ToolButton"
 		button.text = choice[0]
 		button.focus_mode = Control.FOCUS_NONE
 		button.pressed.connect(choice[1])
 		row.add_child(button)
-	bar = holder
+	holder.hide()
+	return holder
+
+
+#####################################
+############## ERASING ##############
+#####################################
+
+# Lets the player rub out parts of the picture shown by sprite, right where it is on the doll.
+# on_done gets the erased picture (a copy: image itself doesn't change).
+func start_erasing(sprite:Sprite2D, image:Image, on_done:Callable) -> void:
+	erase_sprite = sprite
+	erase_image = image.duplicate()
+	if erase_image.is_compressed():
+		erase_image.decompress()
+	erase_image.convert(Image.FORMAT_RGBA8)
+	erase_texture = ImageTexture.create_from_image(erase_image)
+	erase_restore = sprite.texture
+	sprite.texture = erase_texture
+	erase_done = on_done
+	erase_undo.clear()
+	painting = false
+	erasing = true
+	ui_root.hide()
+	sticker_stage.deselect()
 	bar.hide()
+	erase_bar.show()
+	queue_redraw()
+
+# The Erase button while placing a picture on the doll
+func _erase_placing() -> void:
+	start_erasing(preview, placing_image, func(image): placing_image = image)
+
+# The eraser handle on a sticker. Every copy of that sticker on the doll changes.
+# The game's own stickers aren't changed: the erased one is added as a new sticker.
+func erase_sticker(index:int) -> void:
+	if placing or erasing or index >= len(sticker_stage.stickers):
+		return
+	var id: String = sticker_stage.stickers[index].id
+	var button = interactivity.sticker_tab.get_item_button(id)
+	var image = button.image.get_image() if button and button.image else null
+	if image == null or image.is_empty():
+		return
+	start_erasing(sticker_stage.sprites[index], image, func(erased): _save_erased_sticker(button, index, erased))
+
+func _save_erased_sticker(button:Button, index:int, image:Image) -> void:
+	var picture = ImageTexture.create_from_image(image)
+	var id: String = button.item_id
+	if id.begins_with(GeneratedItems.ROOT):
+		if image.save_png(id) != OK:
+			toolbar.show_message("The sticker couldn't be saved.")
+		else:
+			button.show_picture(picture)
+		sticker_stage.show_stickers(interactivity.outfit[interactivity.STICKERS])
+	else:
+		var path = GeneratedItems.save(interactivity.STICKERS, image, interactivity.sticker_tab.item_label(id), "upload")
+		if path == "":
+			toolbar.show_message("The sticker couldn't be saved.")
+			sticker_stage.show_stickers(interactivity.outfit[interactivity.STICKERS])
+			return
+		interactivity.sticker_tab.add_item(picture, path)
+		var stickers = interactivity.outfit[interactivity.STICKERS].duplicate(true)
+		stickers[index].id = path
+		interactivity.set_stickers(stickers)
+	Sfx.play("sparkle")
+
+func finish_erasing() -> void:
+	if not erasing:
+		return
+	var on_done = erase_done
+	var image = erase_image
+	_end_erasing()
+	on_done.call(image)
+
+func cancel_erasing() -> void:
+	if not erasing:
+		return
+	erase_sprite.texture = erase_restore
+	_end_erasing()
+
+# Takes back the last stroke
+func undo_erase() -> void:
+	if erase_undo.is_empty():
+		return
+	erase_image = erase_undo.pop_back()
+	erase_texture.update(erase_image)
+
+func _end_erasing() -> void:
+	erasing = false
+	painting = false
+	erase_undo.clear()
+	erase_bar.hide()
+	# back to placing the picture, if that's where the eraser was started
+	bar.visible = placing
+	ui_root.visible = not placing
+	queue_redraw()
+
+func _erase_input(event:InputEvent, point:Vector2) -> void:
+	if event is InputEventMouse:
+		cursor = point
+		queue_redraw()
+	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+		painting = event.pressed
+		if painting:
+			erase_undo.append(erase_image.duplicate())
+			if len(erase_undo) > MAX_ERASE_UNDO:
+				erase_undo.pop_front()
+			paint_from = _to_picture(point)
+			_paint(paint_from)
+	elif event is InputEventMouseButton and event.pressed:
+		var step = 1 if event.button_index == MOUSE_BUTTON_WHEEL_UP else -1 if event.button_index == MOUSE_BUTTON_WHEEL_DOWN else 0
+		brush_slider.value *= pow(1.15, step)
+	elif event is InputEventMouseMotion and painting:
+		_paint(_to_picture(point))
+	elif event is InputEventKey and event.pressed and not event.echo:
+		if event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
+			finish_erasing()
+		elif event.keycode == KEY_ESCAPE:
+			cancel_erasing()
+		elif event.keycode == KEY_Z and event.is_command_or_control_pressed():
+			undo_erase()
+
+# Erases from the last point to this one (in the picture's pixels)
+func _paint(to:Vector2) -> void:
+	var radius = brush_slider.value / absf(erase_sprite.get_global_transform().get_scale().x)
+	erase_line(erase_image, paint_from, to, radius)
+	erase_texture.update(erase_image)
+	paint_from = to
+
+# A point on screen, in the pixels of the picture being erased
+func _to_picture(point:Vector2) -> Vector2:
+	var local = erase_sprite.get_global_transform().affine_inverse() * point
+	if erase_sprite.flip_h:
+		local.x = -local.x
+	return local + erase_texture.get_size() / 2
+
+# Clears the picture along a line with round ends, with a soft edge one pixel wide
+static func erase_line(image:Image, from:Vector2, to:Vector2, radius:float) -> void:
+	var area = Rect2(from, Vector2.ZERO).expand(to).grow(radius + 1)
+	var pixels = Rect2i(Vector2i(area.position.floor()), Vector2i(area.size.ceil()) + Vector2i.ONE) \
+		.intersection(Rect2i(Vector2i.ZERO, image.get_size()))
+	for y in range(pixels.position.y, pixels.end.y):
+		for x in range(pixels.position.x, pixels.end.x):
+			var middle = Vector2(x + 0.5, y + 0.5)
+			var distance = middle.distance_to(Geometry2D.get_closest_point_to_segment(middle, from, to))
+			var keep = clampf(distance - radius + 0.5, 0.0, 1.0)
+			if keep < 1.0:
+				var color = image.get_pixel(x, y)
+				if color.a > 0.0:
+					color.a *= keep
+					image.set_pixel(x, y, color)
+
+# A frame around the picture, and the eraser's size where the pointer is
+func _draw_eraser() -> void:
+	var half = erase_texture.get_size() / 2
+	var to_screen = erase_sprite.get_global_transform()
+	var corners = [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)].map(
+		func(corner): return to_screen * (corner * half))
+	draw_polyline(corners + [corners[0]], Color(FRAME_COLOR, 0.5), 1.5, true)
+	draw_circle(cursor, brush_slider.value, Color(1, 1, 1, 0.25))
+	draw_circle(cursor, brush_slider.value, Color.WHITE, false, 2.5, true)
+	draw_circle(cursor, brush_slider.value, FRAME_COLOR, false, 1.2, true)

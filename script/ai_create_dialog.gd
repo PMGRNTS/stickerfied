@@ -22,7 +22,10 @@ extends OverlayDialog
 # Added to every sticker prompt so the result is one object that can be placed on the doll
 @export_multiline var sticker_prompt_suffix := "A single isolated accessory or sticker for a dress-up game, centered, whole object visible, clean dark outline, no person wearing it, no text, no shadow."
 # Added to every doll item prompt; %s is the layer's name, such as "Hair"
-@export_multiline var item_prompt_suffix := "A single %s piece for a 2D paper doll dress-up game, front view facing the viewer, shaped to be worn by the doll, whole item visible, clean dark outline, no person, no mannequin, no body, no text, no shadow."
+@export_multiline var item_prompt_suffix := "A single %s piece for a 2D paper doll dress-up game, shaped to be worn by the doll, whole item visible, clean dark outline, no person, no mannequin, no hanger, no text, no shadow."
+# Added to every sticker and doll item prompt, so clothes come out flat like paper doll
+# cutouts instead of showing their inside through the neck or hem
+@export_multiline var flat_prompt := "Drawn completely flat like a paper doll cutout: straight-on front view, no perspective, no depth, no 3D. Only the outside front is shown: the inside, lining, back, inner collar and inner hem are never visible. Neck, sleeve and bottom openings are closed edges filled with the item's color, not holes."
 
 enum Kind { BACKGROUND, STICKER, ITEM }
 
@@ -35,13 +38,13 @@ const BACKGROUND_STYLES := {
 	"Pixel art": "Detailed pixel art, 16-bit video game style.",
 	"Photo": "Realistic photograph, natural light.",
 }
+# Stickers and doll items have no 3D styles: they have to look flat to sit on the doll
 const STICKER_STYLES := {
 	"Cute cartoon": "Cute flat cartoon drawing, bold simple shapes, bright colors.",
-	"Anime": "Anime style item illustration, cel shading.",
+	"Flat vector": "Flat vector illustration, solid colors, no gradients.",
+	"Anime": "Anime style item illustration, flat cel shading.",
 	"Watercolor": "Soft watercolor illustration.",
 	"Pixel art": "Pixel art sprite, 32-bit video game style.",
-	"Shiny 3D": "Glossy 3D toy-like render, soft studio lighting.",
-	"Realistic": "Realistic product photo style.",
 }
 const SETTINGS_FILE := AIKey.SETTINGS_FILE
 
@@ -190,7 +193,7 @@ func generate() -> void:
 		if OpenRouterClient.supports(model, "quality", "medium"):
 			extra.quality = "medium"
 		var suffix = sticker_prompt_suffix if making == Kind.STICKER else item_prompt_suffix % layer_name(layer).to_lower()
-		full_prompt = "%s. %s %s %s" % [prompt.trim_suffix("."), style, suffix,
+		full_prompt = "%s. %s %s %s %s" % [prompt.trim_suffix("."), style, flat_prompt, suffix,
 			"Transparent background." if transparent else "On a plain flat pure white background."]
 
 	busy_since = Time.get_ticks_msec()

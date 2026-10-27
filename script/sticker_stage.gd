@@ -5,10 +5,14 @@
 #   - drag the round handle at the corner to resize and turn the selection
 #   - the red handle (or the Delete key) takes it off
 #   - the green handle (or the D key) makes a copy, the bottom-left handle (or F) mirrors it
+#   - the eraser handle at the top (or the E key) rubs out parts of one sticker (see picture_upload.gd)
 #   - mouse wheel resizes the selection, Shift + wheel turns it
 # Changes are sent to interactivity.gd when the player lets go, so they can be undone.
 
 extends Node2D
+
+# The player wants to erase parts of the sticker at this index
+signal erase_requested(index:int)
 
 @export var interactivity: Node
 # New stickers appear near this node (the SpritePlaceholder marks the middle of the doll)
@@ -18,6 +22,7 @@ const HANDLE_RADIUS := 11.0
 const FRAME_COLOR := Color(0.2, 0.33, 0.85)
 const DELETE_COLOR := Color(0.86, 0.25, 0.4)
 const COPY_COLOR := Color(0.2, 0.68, 0.45)
+const ERASER_COLOR := Color(0.95, 0.55, 0.65)
 # How far a copy is placed from the sticker it was copied from
 const COPY_OFFSET := Vector2(24, 24)
 # Space between a group of stickers and the frame around them
@@ -144,6 +149,8 @@ func _unhandled_input(event:InputEvent) -> void:
 			_duplicate_selection()
 		elif event.keycode == KEY_F and not event.is_command_or_control_pressed():
 			_flip_selection()
+		elif event.keycode == KEY_E and not event.is_command_or_control_pressed() and len(selection) == 1:
+			erase_requested.emit(selection[0])
 		elif event.keycode == KEY_ESCAPE:
 			deselect()
 		else:
@@ -167,6 +174,10 @@ func _on_press(point:Vector2, shift:bool) -> void:
 			return
 		if point.distance_to(corners[3]) <= HANDLE_RADIUS + 3:
 			_flip_selection()
+			get_viewport().set_input_as_handled()
+			return
+		if len(selection) == 1 and point.distance_to(_eraser_handle(corners)) <= HANDLE_RADIUS + 3:
+			erase_requested.emit(selection[0])
 			get_viewport().set_input_as_handled()
 			return
 		if point.distance_to(corners[2]) <= HANDLE_RADIUS + 3:
@@ -393,6 +404,10 @@ func _frame_corners() -> Array:
 	return [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)].map(
 		func(corner): return frame.center + (corner * frame.half).rotated(frame.angle))
 
+# The eraser handle sits in the middle of the frame's top edge (one sticker only)
+static func _eraser_handle(corners:Array) -> Vector2:
+	return (corners[0] + corners[1]) / 2
+
 func _frame_has_point(point:Vector2) -> bool:
 	var frame = _frame()
 	var local = (point - frame.center).rotated(-frame.angle)
@@ -441,6 +456,17 @@ func _draw_handles() -> void:
 		var tip = corners[3] + Vector2(reach * side, 0)
 		handles.draw_line(tip, tip + Vector2(-3 * side, -3), FRAME_COLOR, 2.0, true)
 		handles.draw_line(tip, tip + Vector2(-3 * side, 3), FRAME_COLOR, 2.0, true)
+	# eraser handle: a ring with a tilted eraser in it
+	if len(selection) == 1:
+		var middle = _eraser_handle(corners)
+		handles.draw_circle(middle, HANDLE_RADIUS, Color.WHITE)
+		handles.draw_circle(middle, HANDLE_RADIUS, FRAME_COLOR, false, 2.0, true)
+		var along = Vector2(1, -1).normalized() * HANDLE_RADIUS * 0.55
+		var across = along.orthogonal() * 0.55
+		var body = [-along - across, along - across, along + across, -along + across]
+		var tip = [-along - across, -along * 0.2 - across, -along * 0.2 + across, -along + across]
+		handles.draw_colored_polygon(PackedVector2Array(body.map(func(v): return middle + v)), FRAME_COLOR)
+		handles.draw_colored_polygon(PackedVector2Array(tip.map(func(v): return middle + v)), ERASER_COLOR)
 
 func _draw_outline(corners:Array, color:Color, width:float) -> void:
 	handles.draw_polyline(corners + [corners[0]], color, width, true)

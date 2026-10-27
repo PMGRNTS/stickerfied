@@ -173,6 +173,10 @@ placed anywhere on the doll, unlike layers.
 - The red handle (or the Delete key) takes it off. Clicking a sticker brings it to the front.
 - The green handle (or the D key) makes a copy. The handle at the bottom left (or the F key)
   mirrors it.
+- The eraser handle at the top (or the E key) rubs out parts of a sticker, such as the inside
+  of a collar or hem. Paint over what should go (scroll or use the slider to change the eraser's
+  size), then press Done. Every copy of that sticker changes. The game's own stickers stay as
+  they are: the erased one is added to the menu as a new sticker.
 - Drag a box over empty space to select several stickers (Shift + drag adds to the selection).
   Shift + click adds or removes one sticker, Ctrl+A (Cmd+A on Mac) selects them all and
   Escape lets go. Selected stickers move, resize, turn, copy, mirror and delete together.
@@ -189,6 +193,8 @@ game window adds it to the menu that is open.
 - Doll items (hair, faces, clothes...) are put in place by the player: the menus hide,
   the picture appears on the doll, and the player drags it into place, resizes it with the
   mouse wheel or the corner handle, and presses Done (or Enter; Escape cancels).
+  Erase rubs out parts of it right on the doll, such as the inside of a collar that shows
+  above the neck.
   A picture that is exactly the size of the doll's images skips this step and lines up
   by itself, so art drawn over the doll's template fits straight away.
 - A plain background, such as white paper, is removed from stickers and doll items.
@@ -214,6 +220,10 @@ sticker menu, and all of them are kept for next time. They have a small "x" butt
   resized, the same way as players' own pictures (see above); Done adds it to that
   layer's menu. It can be recolored like any other item. AI models don't know your
   doll's exact shape, so the player lines it up by hand.
+- Stickers and doll items are asked to be drawn flat, like paper doll cutouts, so clothes
+  don't show their inside through the neck or hem ("Flat Prompt" in the Inspector, see below).
+  Models still get this wrong sometimes: the eraser (see Stickers and Players' own pictures)
+  cleans up what's left.
 - Stickers and doll items need a picture without a background. Models marked "(transparent)" in the list
   can make one (the default is openai/gpt-image-1-mini). With other models the game asks
   for a plain white background and removes it, which works best for items with an outline.
