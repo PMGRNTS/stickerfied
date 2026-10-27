@@ -9,10 +9,12 @@
 # "hue" is -1 for original colors, or 0..1 for a recolor.
 # Stickers placed on the doll are kept in a list under "_stickers":
 #   "_stickers": [{"id": "heart.svg", "x": 250, "y": 120, "scale": 0.5, "rot": 0.3, "flip": false}, ...]
-# (x and y are screen positions, rot is the rotation in radians, flip mirrors the sticker)
+# (x and y are screen positions on the doll as drawn, rot is the rotation in radians,
+# flip mirrors the sticker; on a reshaped doll they move with it, see sticker_stage.gd)
 # The doll's shape (the Body menu's sliders) is kept under "_body":
-#   "_body": {"Waist": -0.3, "Eye size": 0.5}
+#   "_body": {"Waist": -0.3, "Eye size": 0.5, "_sculpt": {"412": [3.5, -1.0], ...}}
 # Each value is from -1 to 1; sliders left in the middle (0) are left out.
+# "_sculpt" is what the sculpt brush pushed, see body_sculpt.gd.
 
 extends Node
 
@@ -278,6 +280,11 @@ func cleaned_outfit(new_outfit:Dictionary) -> Dictionary:
 			value = snappedf(clampf(value, -1.0, 1.0), 0.01)
 			if value != 0.0:
 				result[BODY][slider] = value
+	# and the sculpt brush's pushes
+	if body_shaper and body is Dictionary and body.has(body_shaper.SCULPT):
+		var sculpt = body_shaper.cleaned_sculpt(body[body_shaper.SCULPT])
+		if not sculpt.is_empty():
+			result[BODY][body_shaper.SCULPT] = sculpt
 	return result
 
 static func is_background(layer:String) -> bool:
@@ -319,6 +326,9 @@ func apply_outfit(animate := true) -> void:
 			play_swap_animation(sprite)
 			any_changed = true
 	if body_shaper:
+		# each body picture has its own fit (see body_fitter.gd)
+		var body = layers.filter(func(layer): return is_required(layer) and not is_background(layer))
+		body_shaper.use_body(outfit[body[0]].item if not body.is_empty() else "")
 		body_shaper.show_values(outfit[BODY])
 	if body_tab:
 		body_tab.show_values(outfit[BODY])

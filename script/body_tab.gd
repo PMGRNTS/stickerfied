@@ -1,8 +1,13 @@
 # The Body menu: sliders that reshape the doll (see body_shaper.gd).
 # Dragging a slider shows the change straight away; letting go puts it on, so it can be undone.
 # Double-clicking a slider puts it back in the middle (as drawn).
+# Fit points lets the player move the sliders' controls onto their doll (see body_fitter.gd),
+# and Sculpt lets them push the doll into any shape (see body_sculptor.gd).
 
 extends VBoxContainer
+
+signal fit_requested
+signal sculpt_requested
 
 const TEXT_COLOR := Color(0.16, 0.13, 0.33)
 
@@ -33,14 +38,31 @@ func build(groups:Array) -> void:
 		for slider_name in entry.sliders:
 			list.add_child(_slider_row(slider_name))
 
+	var buttons := HBoxContainer.new()
+	buttons.alignment = BoxContainer.ALIGNMENT_CENTER
+	buttons.add_theme_constant_override("separation", 8)
+	add_child(buttons)
 	var reset := Button.new()
 	reset.theme_type_variation = &"ToolButton"
 	reset.text = "As drawn"
-	reset.tooltip_text = "Put every slider back in the middle"
+	reset.tooltip_text = "Put every slider back in the middle and take off the sculpting"
 	reset.focus_mode = Control.FOCUS_NONE
-	reset.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	reset.pressed.connect(func(): SignalBus.dressup_body_signal.emit({}))
-	add_child(reset)
+	buttons.add_child(reset)
+	var fit := Button.new()
+	fit.theme_type_variation = &"ToolButton"
+	fit.text = "Fit points"
+	fit.tooltip_text = "Move the sliders' points onto the parts of your doll"
+	fit.focus_mode = Control.FOCUS_NONE
+	fit.pressed.connect(fit_requested.emit)
+	buttons.add_child(fit)
+	var sculpt := Button.new()
+	sculpt.theme_type_variation = &"ToolButton"
+	sculpt.text = "Sculpt"
+	sculpt.tooltip_text = "Push the doll into any shape with a brush"
+	sculpt.focus_mode = Control.FOCUS_NONE
+	sculpt.pressed.connect(sculpt_requested.emit)
+	buttons.add_child(sculpt)
 
 func _slider_row(slider_name:String) -> Control:
 	var row := HBoxContainer.new()

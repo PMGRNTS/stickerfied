@@ -186,25 +186,60 @@ placed anywhere on the doll, unlike layers.
 
 Body shaping:
 The Body menu (the last category button) has sliders that reshape the doll:
-head size, shoulders, waist, hips, legs and height, and eye size, eye spacing,
-mouth size, mouth height and cheeks. Every layer bends the same way, so the hair,
-face and clothes still fit. Dragging a slider shows the change; letting go puts it
-on, so it can be undone. Double-click a slider (or press "As drawn") to put it back.
+head size, shoulders, waist, hips, legs and height, eye size, eye spacing,
+mouth size, mouth height, cheeks, squint and smile, and a head tilt and lean to pose it.
+The doll blinks and breathes, and long hair swings when the doll moves.
+Every layer bends the same way, so the hair, face and clothes still fit, and
+stickers move, turn and grow with the part of the doll they are on.
+Dragging a slider shows the change; letting go puts it on, so it can be undone.
+Double-click a slider to put it back; "As drawn" puts everything back, sculpting too.
 The shape is saved with outfits and included in share codes, and Random leaves it alone.
+- Fit points (in the Body menu) lets players move the sliders' points onto their own doll,
+  for bodies that aren't shaped like the one the points were placed on, such as a body
+  made with AI or uploaded. The doll is shown as drawn with a circle for each point
+  (points in the same spot, like everything on one eye, share a circle): drag a circle
+  onto the matching part of the doll, and drag its small square to make its area bigger
+  or smaller. Done keeps the fit, Reset puts the points back, Cancel (or Escape) forgets
+  the changes. Each body picture keeps its own fit, on the player's device only.
+- Sculpt (in the Body menu) is a brush for pushing the doll into any shape: drag on the
+  doll to push it, and size the brush with the slider or the mouse wheel. With Restore on,
+  the brush eases pushed parts back to how they were drawn. Undo takes back a stroke and
+  Clear all of them. Done puts the sculpting on (it can be undone like any change, and is
+  saved with outfits and share codes); Cancel (or Escape) forgets it. The sliders still
+  work on the sculpted doll, and every layer and sticker follows it.
 - The sliders come from the "controls" under the BodyShaper node in dress_up.tscn.
-  Each one is drawn as an oval or a pair of lines over the doll in the editor; move
+  Each one is drawn as an oval or lines over the doll in the editor; move
   them over the matching part of your own doll, or add more. Select one to set it
   up in the Inspector (the top of script/body_control.gd explains each setting):
   - Slider: the slider's name. Controls with the same name move together (both eyes).
-  - Group: the heading it is listed under, such as Body or Face.
+  - Group: the heading it is listed under, such as Body, Face or Pose.
   - Shape: an Area changes the part of the doll inside its oval (Reach is the oval's
     half width and height); a Strip changes everything between its two lines, such as
     the legs, and moves what is beyond them out of the way. Anchor is the strip's edge
-    that stays put (the feet stay on the ground with Bottom Or Right).
+    that stays put (the feet stay on the ground with Bottom Or Right). A Turn turns
+    everything above it, like the head on the neck: put it where the turn happens.
   - Stretch makes the part wider or taller (0.2 is 20% bigger with the slider all the
-    way right, 20% smaller all the way left), Move shifts it (in pixels).
+    way right, 20% smaller all the way left), Move shifts it (in pixels),
+    Bend lifts its left and right ends more than its middle (in pixels, like the
+    corners of a smile), and Turn turns it (in degrees).
   - Soft Edge: how much of an Area's oval fades out. Lower it to move a whole part,
-    such as the mouth, without bending it.
+    such as the mouth, without bending it. For a Turn, it fades the turn out towards
+    the sides (Reach.x), so arms sticking out don't swing as far as the head.
+  - Swing (an Area with no Slider): the layers named in Swing Layers ("Hair", or several
+    words separated by commas) hang loose inside the oval, from its top edge. They move
+    with what is above them, so long hair follows the head as it tilts, then lag behind
+    and swing back. The example's HairSwing covers the long hair.
+- A Turn's Reach.y is the band around it where the turn fades in.
+- Controls are applied from the top of the list down (all Areas, then Turns, then Strips),
+  and each one moves along with what the ones above it moved. List bigger parts first:
+  the head's size before the eyes on it, and the head's turn before the whole body leaning.
+- Blinking: select BodyShaper and set "Blink Slider" to the slider that closes the eyes
+  (Squint in the example: its Stretch.y of -0.9 squashes the eyes nearly shut). Blinking
+  moves it all the way right for a moment, then back. Leave it empty for no blinking.
+  "Blink Every" is the shortest and longest wait between blinks, in seconds.
+- Breathing works the same way with "Breathe Slider" (Breathing in the example) and
+  "Breath Time": its controls go from the middle to all the way right and back again.
+  Leave its controls' Group empty, so it isn't listed in the Body menu.
 - Areas fade out towards their edge, so keep each oval clear of parts it shouldn't change
   (the eyes' ovals stop above the mouth). If your faces or clothes differ a lot,
   make the ovals big enough for all of them.
@@ -212,7 +247,6 @@ The shape is saved with outfits and included in share codes, and Random leaves i
 - With no controls under BodyShaper, there is no Body menu.
 - Pictures players add to the doll are lined up with the doll as drawn: the doll goes
   back to its drawn shape while one is placed, then reshapes with the new item on.
-- Stickers don't follow the doll's shape yet: reshape first, then add stickers.
 
 Players' own pictures:
 The first button in every menu (a picture with an arrow) adds a picture from the
