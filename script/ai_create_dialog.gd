@@ -1,5 +1,7 @@
-# Pop-up that makes new backgrounds, stickers or doll items with AI, using OpenRouter.
+# Pop-up that makes new backgrounds, stickers or doll items with AI.
 # The player describes what they want and picks a style.
+# Pictures are made with OpenRouter, or with any model on fal, Replicate or RunPod
+# (see custom_image_client.gd), such as one the player trained themselves.
 #   - Backgrounds are added to the first background folder (the first folder starting with 00).
 #   - Stickers are added to the sticker menu and placed on the doll.
 #   - Doll items (hair, faces, clothes...) are put on the doll for the player to move
@@ -17,6 +19,12 @@ extends OverlayDialog
 @export var default_sticker_model := "openai/gpt-image-1-mini"
 # Doll items need a see-through background too
 @export var default_item_model := "openai/gpt-image-1-mini"
+# The model filled in for each of the other providers, until the player types their own
+@export var default_custom_models := {
+	"fal": "fal-ai/flux/dev",
+	"replicate": "black-forest-labs/flux-dev",
+	"runpod": "black-forest-labs-flux-1-schnell",
+}
 # Added to every prompt so the picture works as a backdrop behind the doll
 @export_multiline var background_prompt_suffix := "Background scenery for a dress-up game. Wide view, no people, no characters, no animals in the foreground, no text, no watermark."
 # Added to every sticker prompt so the result is one object that can be placed on the doll
@@ -26,6 +34,9 @@ extends OverlayDialog
 # Added to every sticker and doll item prompt, so clothes come out flat like paper doll
 # cutouts instead of showing their inside through the neck or hem
 @export_multiline var flat_prompt := "Drawn completely flat like a paper doll cutout: straight-on front view, no perspective, no depth, no 3D. Only the outside front is shown: the inside, lining, back, inner collar and inner hem are never visible. Neck, sleeve and bottom openings are closed edges filled with the item's color, not holes."
+# Used instead of Flat Prompt for the 3D and photo styles (see DEPTH_STYLES): they keep their
+# depth, but clothes still shouldn't show their inside
+@export_multiline var depth_prompt := "Straight-on front view. Only the outside front is shown: the inside, lining, back, inner collar and inner hem are never visible. Neck, sleeve and bottom openings are closed, not holes."
 
 enum Kind { BACKGROUND, STICKER, ITEM }
 
@@ -36,25 +47,44 @@ const BACKGROUND_STYLES := {
 	"Watercolor": "Soft watercolor painting, gentle textures.",
 	"Storybook": "Whimsical children's storybook illustration.",
 	"Pixel art": "Detailed pixel art, 16-bit video game style.",
+	"3D render": "Cute 3D render, soft studio lighting, smooth toy-like shapes.",
 	"Photo": "Realistic photograph, natural light.",
 }
-# Stickers and doll items have no 3D styles: they have to look flat to sit on the doll
 const STICKER_STYLES := {
 	"Cute cartoon": "Cute flat cartoon drawing, bold simple shapes, bright colors.",
 	"Flat vector": "Flat vector illustration, solid colors, no gradients.",
 	"Anime": "Anime style item illustration, flat cel shading.",
 	"Watercolor": "Soft watercolor illustration.",
 	"Pixel art": "Pixel art sprite, 32-bit video game style.",
+	"Shiny 3D": "Glossy 3D toy-like render, soft studio lighting.",
+	"Photo": "Realistic product photo, soft studio lighting.",
+}
+# Sticker styles that aren't drawn flat, so they get Depth Prompt instead of Flat Prompt
+const DEPTH_STYLES := ["Shiny 3D", "Photo"]
+# Where pictures can be made. OpenRouter has a list of models to pick from;
+# for the others the player types the model, and any extra input it needs.
+const PROVIDERS := {
+	"openrouter": {"name": "OpenRouter", "key_url": "https://openrouter.ai/keys", "key_hint": "sk-or-..."},
+	"fal": {"name": "fal", "key_url": "https://fal.ai/dashboard/keys", "key_hint": "your fal key",
+		"model_label": "Model", "model_hint": "fal-ai/flux-lora"},
+	"replicate": {"name": "Replicate", "key_url": "https://replicate.com/account/api-tokens", "key_hint": "r8_...",
+		"model_label": "Model", "model_hint": "owner/model or owner/model:version"},
+	"runpod": {"name": "RunPod", "key_url": "https://console.runpod.io/user/settings", "key_hint": "rpa_...",
+		"model_label": "Endpoint", "model_hint": "your serverless endpoint's ID"},
 }
 const SETTINGS_FILE := AIKey.SETTINGS_FILE
 
 @onready var client: OpenRouterClient = $OpenRouterClient
+@onready var custom_client: CustomImageClient = $CustomImageClient
 
 var kind := Kind.BACKGROUND
 var item_layer := "" # the doll layer a doll item is made for, such as "03Hair"
 var models := [] # every image model, from OpenRouter
 var models_loaded := false
 var preferred_models := {}
+var provider := "openrouter"
+var custom_models := {} # provider : {kind : model typed by the player}
+var custom_extras := {} # provider : {kind : extra input as JSON text}
 var busy_since := -1
 
 func _ready() -> void:
@@ -65,7 +95,16 @@ func _ready() -> void:
 	%StickerKind.pressed.connect(func(): set_kind(Kind.STICKER))
 	%ItemKind.pressed.connect(func(): set_kind(Kind.ITEM))
 	%LayerOption.item_selected.connect(func(index): set_kind(Kind.ITEM, doll_layers()[index]))
+	for id in PROVIDERS:
+		%ProviderOption.add_item(PROVIDERS[id].name)
+	%ProviderOption.item_selected.connect(func(index): set_provider(PROVIDERS.keys()[index]))
 	%KeyEdit.text_changed.connect(func(_text): save_settings())
+	%ModelEdit.text_changed.connect(func(text):
+		custom_models.get_or_add(provider, {})[kind] = text.strip_edges()
+		save_settings())
+	%ExtraEdit.text_changed.connect(func(text):
+		custom_extras.get_or_add(provider, {})[kind] = text.strip_edges()
+		save_settings())
 	%RememberKey.toggled.connect(func(_on): save_settings())
 	%ModelOption.item_selected.connect(func(index):
 		preferred_models[kind] = models[index].id
@@ -82,6 +121,7 @@ func _ready() -> void:
 			open_for(Kind.ITEM, button.category))
 	_load_settings()
 	set_kind(Kind.BACKGROUND)
+	set_provider(provider)
 
 func open_for(new_kind:Kind, layer := "") -> void:
 	set_kind(new_kind, layer)
@@ -89,8 +129,8 @@ func open_for(new_kind:Kind, layer := "") -> void:
 
 func _on_open() -> void:
 	# the key may have been changed in the AI Stylist window
-	%KeyEdit.text = AIKey.current_key()
-	if not models_loaded:
+	%KeyEdit.text = AIKey.current_key(provider)
+	if provider == "openrouter" and not models_loaded:
 		_load_models()
 	%PromptEdit.grab_focus()
 
@@ -166,15 +206,30 @@ func generate() -> void:
 	if prompt == "":
 		_set_status("Describe it first, like \"%s\"." % %PromptEdit.placeholder_text)
 		return
-	client.api_key = %KeyEdit.text.strip_edges()
-	if client.api_key == "" and client.base_url.contains("openrouter.ai"):
-		_set_status("Paste your OpenRouter API key below first.")
+	var key = %KeyEdit.text.strip_edges()
+	var needs_key = client.base_url.contains("openrouter.ai") if provider == "openrouter" else custom_client.needs_key(provider)
+	if key == "" and needs_key:
+		_set_status("Paste your %s API key below first." % PROVIDERS[provider].name)
 		return
+	var using = provider # the player could switch providers while waiting
+	var custom_model = %ModelEdit.text.strip_edges()
+	var custom_extra = {}
+	if using != "openrouter":
+		if custom_model == "":
+			_set_status("Type the %s to use first." % PROVIDERS[using].model_label.to_lower())
+			return
+		if %ExtraEdit.text.strip_edges() != "":
+			var json := JSON.new()
+			custom_extra = json.data if json.parse(%ExtraEdit.text) == OK else null
+			if not custom_extra is Dictionary:
+				_set_status("Extra input has to be written as JSON, like {\"lora_scale\": 0.8}.")
+				return
 
 	var making = kind # the player could switch tabs while waiting
 	var layer = item_layer
-	var model = _selected_model()
-	var style = _styles()[%StyleOption.get_item_text(%StyleOption.selected)]
+	var model = _selected_model() if using == "openrouter" else {}
+	var style_name = %StyleOption.get_item_text(%StyleOption.selected)
+	var style = _styles()[style_name]
 	var full_prompt: String
 	var size: Vector2
 	var extra := {}
@@ -185,7 +240,7 @@ func generate() -> void:
 	else:
 		# a doll item is drawn in the shape of the doll's images, so it is about the right size
 		size = Vector2(picture_upload.doll_size(layer)) if making == Kind.ITEM else Vector2(1, 1)
-		var transparent = can_make_transparent(model)
+		var transparent = using == "openrouter" and can_make_transparent(model)
 		if transparent:
 			extra.background = "transparent"
 			if OpenRouterClient.supports(model, "output_format", "png"):
@@ -193,12 +248,20 @@ func generate() -> void:
 		if OpenRouterClient.supports(model, "quality", "medium"):
 			extra.quality = "medium"
 		var suffix = sticker_prompt_suffix if making == Kind.STICKER else item_prompt_suffix % layer_name(layer).to_lower()
-		full_prompt = "%s. %s %s %s %s" % [prompt.trim_suffix("."), style, flat_prompt, suffix,
+		var shape = depth_prompt if style_name in DEPTH_STYLES else flat_prompt
+		full_prompt = "%s. %s %s %s %s" % [prompt.trim_suffix("."), style, shape, suffix,
 			"Transparent background." if transparent else "On a plain flat pure white background."]
 
 	busy_since = Time.get_ticks_msec()
 	%GenerateButton.disabled = true
-	var result = await client.generate_image(full_prompt, model, size, extra)
+	var result: Dictionary
+	if using == "openrouter":
+		client.api_key = key
+		result = await client.generate_image(full_prompt, model, size, extra)
+	else:
+		custom_client.api_key = key
+		result = await custom_client.generate_image(using, full_prompt, custom_model, size, custom_extra,
+			making != Kind.BACKGROUND)
 	busy_since = -1
 	%GenerateButton.disabled = false
 
@@ -265,8 +328,13 @@ func _load_models() -> void:
 func _default_model() -> String:
 	return [default_background_model, default_sticker_model, default_item_model][kind]
 
-# Lists the models; for stickers and doll items, the ones that make transparent pictures are marked
+# Lists the models; for stickers and doll items, the ones that make transparent pictures are marked.
+# For the other providers, shows the model and extra input typed for this kind of picture.
 func _show_models() -> void:
+	if provider != "openrouter":
+		%ModelEdit.text = custom_models.get(provider, {}).get(kind, default_custom_models.get(provider, ""))
+		%ExtraEdit.text = custom_extras.get(provider, {}).get(kind, "")
+		return
 	for id in [default_background_model, default_sticker_model, default_item_model]:
 		if not models.any(func(model): return model.id == id):
 			models.push_front({"id": id, "name": id, "aspect_ratios": [], "resolutions": [], "params": {}})
@@ -280,6 +348,28 @@ func _show_models() -> void:
 		if model.id == wanted:
 			%ModelOption.select(%ModelOption.item_count - 1)
 
+func set_provider(new_provider: String) -> void:
+	provider = new_provider if new_provider in PROVIDERS else "openrouter"
+	var info: Dictionary = PROVIDERS[provider]
+	var custom = provider != "openrouter"
+	%ProviderOption.select(PROVIDERS.keys().find(provider))
+	%KeyEdit.text = AIKey.current_key(provider)
+	%KeyEdit.placeholder_text = info.key_hint
+	%RememberKey.set_pressed_no_signal(AIKey.remembers_key(provider))
+	%GetKeyLink.uri = info.key_url
+	%ModelLabel.text = info.get("model_label", "Model")
+	%ModelOption.visible = not custom
+	%ModelEdit.visible = custom
+	%ModelEdit.placeholder_text = info.get("model_hint", "")
+	%ExtraRow.visible = custom
+	_show_models()
+	_set_status("")
+	if provider == "replicate" and OS.has_feature("web") and custom_client.needs_key(provider):
+		_set_status("Replicate doesn't let web games connect to it directly. It works in the downloaded game, or through a proxy (see the readme).")
+	elif provider == "openrouter" and not models_loaded and visible:
+		_load_models()
+	save_settings()
+
 func _selected_model() -> Dictionary:
 	return models[%ModelOption.selected] if %ModelOption.selected >= 0 else models[0]
 
@@ -292,13 +382,22 @@ func _load_settings() -> void:
 		config.get_value("openrouter", "model", default_background_model))
 	preferred_models[Kind.STICKER] = config.get_value("openrouter", "sticker_model", default_sticker_model)
 	preferred_models[Kind.ITEM] = config.get_value("openrouter", "item_model", default_item_model)
-	%KeyEdit.text = AIKey.load_key()
-	%RememberKey.set_pressed_no_signal(AIKey.remembers_key())
+	provider = config.get_value("ai_create", "provider", "openrouter")
+	for id in PROVIDERS:
+		if config.has_section_key(id, "models"):
+			custom_models[id] = config.get_value(id, "models")
+		if config.has_section_key(id, "extras"):
+			custom_extras[id] = config.get_value(id, "extras")
 
 func save_settings() -> void:
-	AIKey.save_key(%KeyEdit.text, %RememberKey.button_pressed)
+	AIKey.save_key(%KeyEdit.text, %RememberKey.button_pressed, provider)
 	var config := ConfigFile.new()
 	config.load(SETTINGS_FILE) # keeps the settings saved by other windows
+	config.set_value("ai_create", "provider", provider)
+	for id in custom_models:
+		config.set_value(id, "models", custom_models[id])
+	for id in custom_extras:
+		config.set_value(id, "extras", custom_extras[id])
 	config.set_value("openrouter", "background_model", preferred_models.get(Kind.BACKGROUND, default_background_model))
 	config.set_value("openrouter", "sticker_model", preferred_models.get(Kind.STICKER, default_sticker_model))
 	config.set_value("openrouter", "item_model", preferred_models.get(Kind.ITEM, default_item_model))

@@ -277,6 +277,21 @@ AI backgrounds, stickers and doll items:
 The AI Create window (also opened by the sparkle button in the menus) uses OpenRouter ( https://openrouter.ai ), which offers
 many image models with one account. Each player pastes their own OpenRouter API key
 (from https://openrouter.ai/keys); it is only stored on their device.
+Under "AI settings", Provider can instead be fal ( https://fal.ai ), Replicate ( https://replicate.com )
+or RunPod ( https://runpod.io ), which run any model you name, including ones you trained yourself.
+Each has its own API key ("Get a key" opens the right page). Type the model instead of picking it:
+- fal: the model's id from its page, such as fal-ai/flux/dev or fal-ai/flux-lora.
+- Replicate: owner/model (its latest version), or owner/model:version for one exact version.
+- RunPod: the ID of your serverless endpoint (Endpoint).
+The game sends the prompt and the picture's size with the names most image models use (prompt,
+image_size on fal; aspect_ratio, width and height on Replicate; width and height on RunPod).
+Anything else your model needs goes in Extra, written as JSON. It's added to what the game
+sends and replaces anything with the same name, for example a LoRA on fal-ai/flux-lora:
+  {"loras": [{"path": "https://.../my_style.safetensors", "scale": 0.9}]}
+The game finds the picture in the model's answer by itself, whether it's a link or base64 data.
+Each kind of picture (background, sticker, doll item) remembers its own model and Extra.
+These providers can't make see-through pictures, so the game asks for a plain white
+background and removes it, as with OpenRouter models that aren't marked "(transparent)".
 New backgrounds are added to the first background folder's menu, new stickers to the
 sticker menu, and all of them are kept for next time. They have a small "x" button for deleting them.
 - Doll items: pick "Doll item" and a layer (the sparkle button in a layer's menu picks it
@@ -286,6 +301,8 @@ sticker menu, and all of them are kept for next time. They have a small "x" butt
   doll's exact shape, so the player lines it up by hand.
 - Stickers and doll items are asked to be drawn flat, like paper doll cutouts, so clothes
   don't show their inside through the neck or hem ("Flat Prompt" in the Inspector, see below).
+  The Shiny 3D and Photo styles keep their depth and use "Depth Prompt" instead, which still
+  asks for closed openings.
   Models still get this wrong sometimes: the eraser (see Stickers and Players' own pictures)
   cleans up what's left.
 - Stickers and doll items need a picture without a background. Models marked "(transparent)" in the list
@@ -293,11 +310,16 @@ sticker menu, and all of them are kept for next time. They have a small "x" butt
   for a plain white background and removes it, which works best for items with an outline.
 - Change the default models and the text added to every prompt by selecting
   Popups/AICreateDialog in dress_up.tscn and editing it in the Inspector.
-- Styles are listed at the top of script/ai_create_dialog.gd.
+- Styles are listed at the top of script/ai_create_dialog.gd. Sticker styles that shouldn't be
+  drawn flat go in DEPTH_STYLES there too.
 - Don't put your own API key into the game files: anyone can read it from an
   exported game. To pay for players' images yourself, run a small proxy server
   that holds the key, and set "Base Url" on the OpenRouterClient node
-  (inside GUI/ai_create_dialog.tscn) to the proxy's address.
+  (inside GUI/ai_create_dialog.tscn) to the proxy's address. For fal, Replicate and RunPod, set
+  "Fal Url", "Replicate Url" or "Runpod Url" on the CustomImageClient node next to it.
+- Replicate doesn't accept requests from web pages, so in the web version it only works through
+  such a proxy (it works in downloaded games). If another provider can't be reached from the web
+  version, a proxy fixes that too.
 
 AI Stylist:
 Uses the same OpenRouter key as AI Create, and a text model that can look at pictures

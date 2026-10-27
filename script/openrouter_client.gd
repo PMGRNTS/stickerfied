@@ -144,7 +144,7 @@ func _request(path: String, method: int, body = null) -> Dictionary:
 	http.queue_free()
 
 	if response[0] != HTTPRequest.RESULT_SUCCESS:
-		return _fail(_describe_result(response[0]))
+		return _fail(describe_result(response[0]))
 	var data = JSON.parse_string(response[3].get_string_from_utf8())
 	var code: int = response[1]
 	if code < 200 or code >= 300:
@@ -176,7 +176,8 @@ func _download(url: String) -> Dictionary:
 func _fail(message: String) -> Dictionary:
 	return {"ok": false, "error": message}
 
-func _describe_result(result: int) -> String:
+# Explains a network problem (an HTTPRequest result) to the player
+static func describe_result(result: int) -> String:
 	match result:
 		HTTPRequest.RESULT_TIMEOUT:
 			return "It took too long to answer. Try again, or pick a faster model."
