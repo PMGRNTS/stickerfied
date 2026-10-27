@@ -187,7 +187,8 @@ placed anywhere on the doll, unlike layers.
 Body shaping:
 The Body menu (the last category button) has sliders that reshape the doll:
 head size, shoulders, waist, hips, legs and height, eye size, eye spacing,
-mouth size, mouth height and cheeks, and a head tilt and lean to pose it.
+mouth size, mouth height, cheeks, squint and smile, and a head tilt and lean to pose it.
+The doll blinks now and then.
 Every layer bends the same way, so the hair, face and clothes still fit, and
 stickers move, turn and grow with the part of the doll they are on.
 Dragging a slider shows the change; letting go puts it on, so it can be undone.
@@ -206,12 +207,19 @@ The shape is saved with outfits and included in share codes, and Random leaves i
     everything above it, like the head on the neck: put it where the turn happens.
   - Stretch makes the part wider or taller (0.2 is 20% bigger with the slider all the
     way right, 20% smaller all the way left), Move shifts it (in pixels),
-    Turn turns it (in degrees).
+    Bend lifts its left and right ends more than its middle (in pixels, like the
+    corners of a smile), and Turn turns it (in degrees).
   - Soft Edge: how much of an Area's oval fades out. Lower it to move a whole part,
     such as the mouth, without bending it. For a Turn, it fades the turn out towards
     the sides (Reach.x), so arms sticking out don't swing as far as the head.
-- A Turn's Reach.y is the band around it where the turn fades in. List a head's turn
-  before a turn of the whole body, so the head turns on its neck and then leans with it.
+- A Turn's Reach.y is the band around it where the turn fades in.
+- Controls are applied from the top of the list down (all Areas, then Turns, then Strips),
+  and each one moves along with what the ones above it moved. List bigger parts first:
+  the head's size before the eyes on it, and the head's turn before the whole body leaning.
+- Blinking: select BodyShaper and set "Blink Slider" to the slider that closes the eyes
+  (Squint in the example: its Stretch.y of -0.9 squashes the eyes nearly shut). Blinking
+  moves it all the way right for a moment, then back. Leave it empty for no blinking.
+  "Blink Every" is the shortest and longest wait between blinks, in seconds.
 - Areas fade out towards their edge, so keep each oval clear of parts it shouldn't change
   (the eyes' ovals stop above the mouth). If your faces or clothes differ a lot,
   make the ovals big enough for all of them.

@@ -282,6 +282,37 @@ stretch = Vector2(0.25, 0)
 move = Vector2(0, 0)
 anchor = 0
 
+[node name="SquintLeft" type="Node2D" parent="BodyShaper"]
+position = Vector2(217, 69)
+script = ExtResource("17_control")
+slider = "Squint"
+group = "Face"
+shape = 0
+reach = Vector2(20, 10)
+stretch = Vector2(0, -0.9)
+soft_edge = 0.4
+
+[node name="SquintRight" type="Node2D" parent="BodyShaper"]
+position = Vector2(260, 69)
+script = ExtResource("17_control")
+slider = "Squint"
+group = "Face"
+shape = 0
+reach = Vector2(20, 10)
+stretch = Vector2(0, -0.9)
+soft_edge = 0.4
+
+[node name="Smile" type="Node2D" parent="BodyShaper"]
+position = Vector2(241, 94)
+script = ExtResource("17_control")
+slider = "Smile"
+group = "Face"
+shape = 0
+reach = Vector2(60, 30)
+stretch = Vector2(0, 0)
+bend = 22.0
+soft_edge = 0.5
+
 [node name="HeadTilt" type="Node2D" parent="BodyShaper"]
 position = Vector2(279, 146)
 script = ExtResource("17_control")

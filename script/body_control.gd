@@ -8,6 +8,8 @@
 #   Soft Edge is how much of the oval fades: 1 fades all the way from the middle,
 #   0.5 changes the inner half fully (good for moving a whole mouth). Harder edges
 #   can't stretch or move as far before the picture would fold over, so they are held back.
+#   Bend lifts the area's left and right ends more than its middle (in pixels at the
+#   oval's sides), like the corners of a smiling mouth.
 # Shape "Strip": changes everything between two lines across the whole doll.
 #   Stretch.y makes the strip taller (Reach.y is half its height), and Stretch.x makes
 #   it wider (Reach.x is half its width). What is beyond the strip moves out of the way.
@@ -18,8 +20,8 @@
 #   instead of breaking. Reach.x is half the width of what turns; Soft Edge fades the turn
 #   out towards that, so arms or hair sticking out to the side don't swing too far.
 #
-# Stretch and Move are the change with the slider all the way right;
-# all the way left is the opposite. 0.2 stretch is 20% bigger.
+# Stretch, Move, Bend and Turn are the change with the slider all the way right;
+# all the way left is the opposite. 0.2 stretch is 20% bigger, -0.2 is 20% smaller.
 # The ovals and strips are drawn in the editor, but not in the game.
 
 @tool
@@ -28,8 +30,8 @@ extends Node2D
 enum Shape { AREA, STRIP, TURN }
 enum Anchor { MIDDLE, TOP_OR_LEFT, BOTTOM_OR_RIGHT }
 
-# Smallest and biggest a part can be stretched to (0.3 = 30% of its size)
-const STRETCH_LIMITS := Vector2(0.3, 2.0)
+# Smallest and biggest a part can be stretched to (0.05 = 5% of its size, such as closed eyes)
+const STRETCH_LIMITS := Vector2(0.05, 2.0)
 
 @export var slider := "Waist"
 # The heading the slider is listed under in the Body menu
@@ -44,6 +46,7 @@ const STRETCH_LIMITS := Vector2(0.3, 2.0)
 		queue_redraw()
 @export var stretch := Vector2(0.25, 0.0)
 @export var move := Vector2.ZERO
+@export var bend := 0.0
 @export var turn := 0.0:
 	set(value):
 		turn = value
@@ -57,9 +60,9 @@ const STRETCH_LIMITS := Vector2(0.3, 2.0)
 		anchor = value
 		queue_redraw()
 
-# Where point (on the screen) goes with the slider at value (-1 to 1)
-func shaped(point:Vector2, value:float) -> Vector2:
-	var center = global_position
+# Where point (on the screen) goes with the slider at value (-1 to 1).
+# center is where the control's middle is now, after the controls before it moved it.
+func shaped(point:Vector2, value:float, center := global_position) -> Vector2:
 	var size = (reach * global_scale.abs()).max(Vector2.ONE)
 	if shape == Shape.STRIP:
 		var factor = (Vector2.ONE + stretch * value).clamp(Vector2.ONE * STRETCH_LIMITS.x, Vector2.ONE * STRETCH_LIMITS.y)
@@ -80,8 +83,15 @@ func shaped(point:Vector2, value:float) -> Vector2:
 	var biggest = minf(STRETCH_LIMITS.y, 1.0 + 1.2 * pow(soft, 1.45))
 	var factor = (Vector2.ONE + stretch * value).clamp(Vector2.ONE * STRETCH_LIMITS.x, Vector2.ONE * biggest)
 	var furthest = size * 0.6 * soft
-	var shift = (move * value).clamp(-furthest, furthest)
+	var lift = Vector2(0, -bend * value * pow(from_center.x / size.x, 2))
+	var shift = (move * value + lift).clamp(-furthest, furthest)
 	return point + (from_center * (factor - Vector2.ONE) + shift) * weight
+
+# Whether the control can change point (an area only changes what is inside its oval)
+func reaches(point:Vector2, center := global_position) -> bool:
+	if shape != Shape.AREA:
+		return true
+	return ((point - center) / (reach * global_scale.abs()).max(Vector2.ONE)).length() < 1.0
 
 # 1 inside the hard middle (distance 0 to 1 - soft), fading smoothly to 0 at distance 1
 static func _fade(distance:float, soft:float) -> float:
