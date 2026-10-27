@@ -320,6 +320,9 @@ func apply_outfit(animate := true) -> void:
 			play_swap_animation(sprite)
 			any_changed = true
 	if body_shaper:
+		# each body picture has its own fit (see body_fitter.gd)
+		var body = layers.filter(func(layer): return is_required(layer) and not is_background(layer))
+		body_shaper.use_body(outfit[body[0]].item if not body.is_empty() else "")
 		body_shaper.show_values(outfit[BODY])
 	if body_tab:
 		body_tab.show_values(outfit[BODY])

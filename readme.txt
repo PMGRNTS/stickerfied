@@ -188,12 +188,19 @@ Body shaping:
 The Body menu (the last category button) has sliders that reshape the doll:
 head size, shoulders, waist, hips, legs and height, eye size, eye spacing,
 mouth size, mouth height, cheeks, squint and smile, and a head tilt and lean to pose it.
-The doll blinks now and then.
+The doll blinks and breathes, and long hair swings when the doll moves.
 Every layer bends the same way, so the hair, face and clothes still fit, and
 stickers move, turn and grow with the part of the doll they are on.
 Dragging a slider shows the change; letting go puts it on, so it can be undone.
 Double-click a slider (or press "As drawn") to put it back.
 The shape is saved with outfits and included in share codes, and Random leaves it alone.
+- Fit points (in the Body menu) lets players move the sliders' points onto their own doll,
+  for bodies that aren't shaped like the one the points were placed on, such as a body
+  made with AI or uploaded. The doll is shown as drawn with a circle for each point
+  (points in the same spot, like everything on one eye, share a circle): drag a circle
+  onto the matching part of the doll, and drag its small square to make its area bigger
+  or smaller. Done keeps the fit, Reset puts the points back, Cancel (or Escape) forgets
+  the changes. Each body picture keeps its own fit, on the player's device only.
 - The sliders come from the "controls" under the BodyShaper node in dress_up.tscn.
   Each one is drawn as an oval or lines over the doll in the editor; move
   them over the matching part of your own doll, or add more. Select one to set it
@@ -212,6 +219,10 @@ The shape is saved with outfits and included in share codes, and Random leaves i
   - Soft Edge: how much of an Area's oval fades out. Lower it to move a whole part,
     such as the mouth, without bending it. For a Turn, it fades the turn out towards
     the sides (Reach.x), so arms sticking out don't swing as far as the head.
+  - Swing (an Area with no Slider): the layers named in Swing Layers ("Hair", or several
+    words separated by commas) hang loose inside the oval, from its top edge. They move
+    with what is above them, so long hair follows the head as it tilts, then lag behind
+    and swing back. The example's HairSwing covers the long hair.
 - A Turn's Reach.y is the band around it where the turn fades in.
 - Controls are applied from the top of the list down (all Areas, then Turns, then Strips),
   and each one moves along with what the ones above it moved. List bigger parts first:
@@ -220,6 +231,9 @@ The shape is saved with outfits and included in share codes, and Random leaves i
   (Squint in the example: its Stretch.y of -0.9 squashes the eyes nearly shut). Blinking
   moves it all the way right for a moment, then back. Leave it empty for no blinking.
   "Blink Every" is the shortest and longest wait between blinks, in seconds.
+- Breathing works the same way with "Breathe Slider" (Breathing in the example) and
+  "Breath Time": its controls go from the middle to all the way right and back again.
+  Leave its controls' Group empty, so it isn't listed in the Body menu.
 - Areas fade out towards their edge, so keep each oval clear of parts it shouldn't change
   (the eyes' ovals stop above the mouth). If your faces or clothes differ a lot,
   make the ovals big enough for all of them.

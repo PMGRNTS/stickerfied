@@ -8,6 +8,7 @@ extends Node
 @onready var sprite_placeholder: Sprite2D = %SpritePlaceholder
 @onready var sprite_holder: Node2D = %SpriteHolder
 @onready var body_shaper: Node2D = %BodyShaper
+@onready var body_fitter: Node2D = %BodyFitter
 
 @onready var category_buttons: HBoxContainer = %CategoryButtons
 @onready var tabs_of_items_container: CenterContainer = %TabsOfItemsContainer
@@ -207,6 +208,7 @@ func add_body_category() -> void:
 	newtab.layer = interactivity.BODY
 	tabs_of_items_container.add_child(newtab)
 	newtab.build(groups)
+	newtab.fit_requested.connect(body_fitter.start)
 	interactivity.body_tab = newtab
 
 

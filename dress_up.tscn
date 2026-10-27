@@ -18,6 +18,7 @@
 [ext_resource type="Script" path="res://script/picture_upload.gd" id="15_upload"]
 [ext_resource type="Script" path="res://script/body_shaper.gd" id="16_shaper"]
 [ext_resource type="Script" path="res://script/body_control.gd" id="17_control"]
+[ext_resource type="Script" path="res://script/body_fitter.gd" id="18_fitter"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -283,7 +284,7 @@ move = Vector2(0, 0)
 anchor = 0
 
 [node name="SquintLeft" type="Node2D" parent="BodyShaper"]
-position = Vector2(217, 69)
+position = Vector2(217, 70)
 script = ExtResource("17_control")
 slider = "Squint"
 group = "Face"
@@ -293,7 +294,7 @@ stretch = Vector2(0, -0.9)
 soft_edge = 0.4
 
 [node name="SquintRight" type="Node2D" parent="BodyShaper"]
-position = Vector2(260, 69)
+position = Vector2(260, 70)
 script = ExtResource("17_control")
 slider = "Squint"
 group = "Face"
@@ -303,7 +304,7 @@ stretch = Vector2(0, -0.9)
 soft_edge = 0.4
 
 [node name="Smile" type="Node2D" parent="BodyShaper"]
-position = Vector2(241, 94)
+position = Vector2(245, 98)
 script = ExtResource("17_control")
 slider = "Smile"
 group = "Face"
@@ -312,6 +313,27 @@ reach = Vector2(60, 30)
 stretch = Vector2(0, 0)
 bend = 22.0
 soft_edge = 0.5
+
+[node name="Breathing" type="Node2D" parent="BodyShaper"]
+position = Vector2(286, 226)
+script = ExtResource("17_control")
+slider = "Breathing"
+group = ""
+shape = 0
+reach = Vector2(85, 75)
+stretch = Vector2(0.04, 0.03)
+
+[node name="HairSwing" type="Node2D" parent="BodyShaper"]
+position = Vector2(306, 171)
+script = ExtResource("17_control")
+slider = ""
+group = ""
+shape = 0
+reach = Vector2(135, 140)
+stretch = Vector2(0, 0)
+soft_edge = 0.4
+swing = 0.8
+swing_layers = "Hair"
 
 [node name="HeadTilt" type="Node2D" parent="BodyShaper"]
 position = Vector2(279, 146)
@@ -334,6 +356,13 @@ reach = Vector2(220, 30)
 stretch = Vector2(0, 0)
 turn = 10.0
 soft_edge = 0.4
+
+[node name="BodyFitter" type="Node2D" parent="." node_paths=PackedStringArray("body_shaper", "ui_root", "sticker_stage")]
+unique_name_in_owner = true
+script = ExtResource("18_fitter")
+body_shaper = NodePath("../BodyShaper")
+ui_root = NodePath("../DressupMenu")
+sticker_stage = NodePath("../StickerStage")
 
 [node name="Toolbar" parent="DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage") instance=ExtResource("9_toolbar")]
 layout_mode = 1
