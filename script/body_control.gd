@@ -29,12 +29,18 @@
 # The ovals and strips are drawn in the editor, and in the game while the player fits
 # the points to their doll (see body_fitter.gd).
 # Leave Group empty for sliders the game moves by itself, such as breathing.
+# Landmark is the part of the doll the control sits on. Fit points can then put it on
+# that part of any doll (see body_finder.gd); controls on the same landmark go to the
+# same spot, and keep their sizes compared to each other. NONE stays where it is placed.
 
 @tool
 extends Node2D
 
 enum Shape { AREA, STRIP, TURN }
 enum Anchor { MIDDLE, TOP_OR_LEFT, BOTTOM_OR_RIGHT }
+# Left and right are as seen on the screen
+enum Landmark { NONE, FIGURE, HEAD, NECK, LEFT_EYE, RIGHT_EYE, MOUTH, CHEEKS, HAIR,
+	SHOULDERS, CHEST, WAIST, HIPS, LEGS }
 
 # Smallest and biggest a part can be stretched to (0.05 = 5% of its size, such as closed eyes)
 const STRETCH_LIMITS := Vector2(0.05, 2.0)
@@ -70,6 +76,7 @@ const STRETCH_LIMITS := Vector2(0.05, 2.0)
 		swing = value
 		queue_redraw()
 @export var swing_layers := "Hair"
+@export var landmark := Landmark.NONE
 
 # Where point (on the screen) goes with the slider at value (-1 to 1).
 # center is where the control's middle is now, after the controls before it moved it.

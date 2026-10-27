@@ -196,11 +196,20 @@ Double-click a slider to put it back; "As drawn" puts everything back, sculpting
 The shape is saved with outfits and included in share codes, and Random leaves it alone.
 - Fit points (in the Body menu) lets players move the sliders' points onto their own doll,
   for bodies that aren't shaped like the one the points were placed on, such as a body
-  made with AI or uploaded. The doll is shown as drawn with a circle for each point
-  (points in the same spot, like everything on one eye, share a circle): drag a circle
-  onto the matching part of the doll, and drag its small square to make its area bigger
-  or smaller. Done keeps the fit, Reset puts the points back, Cancel (or Escape) forgets
-  the changes. Each body picture keeps its own fit, on the player's device only.
+  made with AI or uploaded. The doll is shown as drawn, and one point is worked on at a
+  time: its areas are shown and the other points are small dots (points in the same spot,
+  like everything on one eye, share a dot). Tap a dot, or step with Prev and Next (Tab and
+  Shift+Tab), to work on another; hovering over a dot shows what it is. Drag the point's
+  circle, or anywhere inside its area, onto the matching part of the doll (arrow keys nudge
+  it), and drag its small square (or turn the mouse wheel) to make its area bigger or smaller.
+  Find parts puts the points on the doll by itself: it follows the body's outline (the neck
+  is the narrowest place under the head, the legs part at the crotch, the waist is the
+  narrowest place above them) and looks for the eyes and mouth on the face, in the face
+  layer or drawn on the body. Standard puts them where they usually are on a doll standing
+  straight and facing forward, sized to the doll. Both work best on such a doll; fix up
+  whatever they get wrong by hand. Done keeps the fit, Reset puts the points back where
+  they were placed in the scene, Cancel (or Escape) forgets the changes.
+  Each body picture keeps its own fit, on the player's device only.
 - Sculpt (in the Body menu) is a brush for pushing the doll into any shape: drag on the
   doll to push it, and size the brush with the slider or the mouse wheel. With Restore on,
   the brush eases pushed parts back to how they were drawn. Undo takes back a stroke and
@@ -222,6 +231,9 @@ The shape is saved with outfits and included in share codes, and Random leaves i
     way right, 20% smaller all the way left), Move shifts it (in pixels),
     Bend lifts its left and right ends more than its middle (in pixels, like the
     corners of a smile), and Turn turns it (in degrees).
+  - Landmark: the part of the doll the control sits on (Head, Left Eye, Waist...). Find parts
+    and Standard put it on that part of the player's doll; controls on the same landmark go
+    to the same spot and keep their sizes compared to each other. None leaves it where it is.
   - Soft Edge: how much of an Area's oval fades out. Lower it to move a whole part,
     such as the mouth, without bending it. For a Turn, it fades the turn out towards
     the sides (Reach.x), so arms sticking out don't swing as far as the head.

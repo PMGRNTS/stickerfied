@@ -145,6 +145,7 @@ reach = Vector2(110, 110)
 stretch = Vector2(0.35, 0.35)
 move = Vector2(0, 0)
 anchor = 0
+landmark = 2
 
 [node name="Shoulders" type="Node2D" parent="BodyShaper"]
 position = Vector2(283, 176)
@@ -156,6 +157,7 @@ reach = Vector2(150, 70)
 stretch = Vector2(0.4, 0)
 move = Vector2(0, 0)
 anchor = 0
+landmark = 9
 
 [node name="Waist" type="Node2D" parent="BodyShaper"]
 position = Vector2(286, 296)
@@ -167,6 +169,7 @@ reach = Vector2(75, 60)
 stretch = Vector2(0.45, 0)
 move = Vector2(0, 0)
 anchor = 0
+landmark = 11
 
 [node name="Hips" type="Node2D" parent="BodyShaper"]
 position = Vector2(283, 381)
@@ -178,6 +181,7 @@ reach = Vector2(80, 55)
 stretch = Vector2(0.45, 0)
 move = Vector2(0, 0)
 anchor = 0
+landmark = 12
 
 [node name="Legs" type="Node2D" parent="BodyShaper"]
 position = Vector2(261, 466)
@@ -189,6 +193,7 @@ reach = Vector2(150, 80)
 stretch = Vector2(0, 0.25)
 move = Vector2(0, 0)
 anchor = 2
+landmark = 13
 
 [node name="Height" type="Node2D" parent="BodyShaper"]
 position = Vector2(261, 306)
@@ -200,6 +205,7 @@ reach = Vector2(150, 272)
 stretch = Vector2(0, 0.1)
 move = Vector2(0, 0)
 anchor = 2
+landmark = 1
 
 [node name="EyeSizeLeft" type="Node2D" parent="BodyShaper"]
 position = Vector2(217, 70)
@@ -212,6 +218,7 @@ stretch = Vector2(0.4, 0.4)
 move = Vector2(0, 0)
 anchor = 0
 soft_edge = 0.5
+landmark = 4
 
 [node name="EyeSizeRight" type="Node2D" parent="BodyShaper"]
 position = Vector2(260, 70)
@@ -224,6 +231,7 @@ stretch = Vector2(0.4, 0.4)
 move = Vector2(0, 0)
 anchor = 0
 soft_edge = 0.5
+landmark = 5
 
 [node name="EyeSpacingLeft" type="Node2D" parent="BodyShaper"]
 position = Vector2(217, 70)
@@ -236,6 +244,7 @@ stretch = Vector2(0, 0)
 move = Vector2(-6, 0)
 anchor = 0
 soft_edge = 0.5
+landmark = 4
 
 [node name="EyeSpacingRight" type="Node2D" parent="BodyShaper"]
 position = Vector2(260, 70)
@@ -248,6 +257,7 @@ stretch = Vector2(0, 0)
 move = Vector2(6, 0)
 anchor = 0
 soft_edge = 0.5
+landmark = 5
 
 [node name="MouthSize" type="Node2D" parent="BodyShaper"]
 position = Vector2(245, 98)
@@ -260,6 +270,7 @@ stretch = Vector2(0.4, 0.15)
 move = Vector2(0, 0)
 anchor = 0
 soft_edge = 0.6
+landmark = 6
 
 [node name="MouthHeight" type="Node2D" parent="BodyShaper"]
 position = Vector2(245, 98)
@@ -272,6 +283,7 @@ stretch = Vector2(0, 0)
 move = Vector2(0, -6)
 anchor = 0
 soft_edge = 0.5
+landmark = 6
 
 [node name="Cheeks" type="Node2D" parent="BodyShaper"]
 position = Vector2(256, 126)
@@ -283,6 +295,7 @@ reach = Vector2(90, 40)
 stretch = Vector2(0.25, 0)
 move = Vector2(0, 0)
 anchor = 0
+landmark = 7
 
 [node name="SquintLeft" type="Node2D" parent="BodyShaper"]
 position = Vector2(217, 70)
@@ -293,6 +306,7 @@ shape = 0
 reach = Vector2(20, 10)
 stretch = Vector2(0, -0.9)
 soft_edge = 0.4
+landmark = 4
 
 [node name="SquintRight" type="Node2D" parent="BodyShaper"]
 position = Vector2(260, 70)
@@ -303,6 +317,7 @@ shape = 0
 reach = Vector2(20, 10)
 stretch = Vector2(0, -0.9)
 soft_edge = 0.4
+landmark = 5
 
 [node name="Smile" type="Node2D" parent="BodyShaper"]
 position = Vector2(245, 98)
@@ -314,6 +329,7 @@ reach = Vector2(60, 30)
 stretch = Vector2(0, 0)
 bend = 22.0
 soft_edge = 0.5
+landmark = 6
 
 [node name="Breathing" type="Node2D" parent="BodyShaper"]
 position = Vector2(286, 226)
@@ -323,6 +339,7 @@ group = ""
 shape = 0
 reach = Vector2(85, 75)
 stretch = Vector2(0.04, 0.03)
+landmark = 10
 
 [node name="HairSwing" type="Node2D" parent="BodyShaper"]
 position = Vector2(306, 171)
@@ -335,6 +352,7 @@ stretch = Vector2(0, 0)
 soft_edge = 0.4
 swing = 0.8
 swing_layers = "Hair"
+landmark = 8
 
 [node name="HeadTilt" type="Node2D" parent="BodyShaper"]
 position = Vector2(279, 146)
@@ -346,6 +364,7 @@ reach = Vector2(140, 18)
 stretch = Vector2(0, 0)
 turn = 20.0
 soft_edge = 0.3
+landmark = 3
 
 [node name="Lean" type="Node2D" parent="BodyShaper"]
 position = Vector2(286, 381)
@@ -357,6 +376,7 @@ reach = Vector2(220, 30)
 stretch = Vector2(0, 0)
 turn = 10.0
 soft_edge = 0.4
+landmark = 12
 
 [node name="BodyFitter" type="Node2D" parent="." node_paths=PackedStringArray("body_shaper", "ui_root", "sticker_stage")]
 unique_name_in_owner = true

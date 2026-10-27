@@ -1,9 +1,15 @@
 # Lets the player move the Body menu's controls to fit their doll, for bodies that aren't
 # shaped like the one the controls were placed on (such as a body made with AI or uploaded).
-#   - the doll is shown as drawn, with a handle on each control; controls in the same
-#     spot (such as everything on one eye) share a handle and move together
-#   - drag a handle onto the matching part of the doll
-#   - drag the small square at its corner to make its area bigger or smaller
+#   - the doll is shown as drawn, and one point is worked on at a time: its areas are shown,
+#     and the other points are small dots. Tap a dot, or step with Prev and Next (Tab and
+#     Shift+Tab), to work on another. Hovering over a dot shows what it is.
+#     Controls in the same spot (such as everything on one eye) share a point and move together.
+#   - drag the point's circle, or anywhere inside its area, onto the matching part of the doll
+#     (the arrow keys nudge it, more with Shift)
+#   - drag the small square at its corner, or turn the mouse wheel, to make its area bigger or smaller
+#   - Find parts puts the points on the parts the game finds in the doll's pictures, and
+#     Standard where they usually are on a doll standing straight and facing forward
+#     (see body_finder.gd; only controls with a Landmark move)
 #   - Done keeps the fit for the body picture worn now (each body has its own, see
 #     body_shaper.gd), Reset puts the controls back where the game placed them,
 #     and Cancel (or Escape) forgets the changes
@@ -11,35 +17,77 @@
 
 extends Node2D
 
+const BodyControl = preload("res://script/body_control.gd")
+
 @export var body_shaper: Node2D
 # Hidden while fitting, so the outfit can't change meanwhile
 @export var ui_root: Control
 @export var sticker_stage: Node2D
 
 const HANDLE_RADIUS := 8.0
+const DOT_RADIUS := 4.5
 const CORNER_SIZE := 6.0
+# How far from a circle, dot or square a press still catches it: more on touch screens, for fingers
+const GRAB_MOUSE := 4.0
+const GRAB_TOUCH := 14.0
 const COLOR := Color(0.2, 0.33, 0.85)
 const SWING_COLOR := Color(0.2, 0.6, 0.4)
 const LABEL_SIZE := 11
+const HINT := "Drag the circle onto the matching part of your doll, and the square to resize it. Tap a dot to fit another point."
+# How much one turn of the mouse wheel resizes
+const WHEEL_STEP := 1.05
 
 enum Drag { NONE, MOVE, RESIZE }
 
 var fitting := false
-var spots := [] # [{"controls": [...], "label": "Eye size, Eye spacing"}], one per handle
+var spots := [] # [{"controls": [...], "label": "Eye size, Eye spacing"}], one per point
 var before := [] # [position, reach] of every control when fitting started, for Cancel
-var chosen := -1 # the spot being dragged, or touched last
+var chosen := 0 # the spot being worked on
 var hovered := -1 # the spot under the mouse
 var drag := Drag.NONE
 var drag_start_point := Vector2.ZERO
 var drag_start := [] # [position, reach] of each control in the chosen spot when the drag started
+var grab := GRAB_MOUSE
 var bar: Control
+var hint: Label
+var title: Label # names the chosen spot
 
 func _ready() -> void:
 	z_index = 101 # above the doll and the stickers
+	grab = GRAB_TOUCH if DisplayServer.is_touchscreen_available() else GRAB_MOUSE
 	var layer = CanvasLayer.new()
 	add_child(layer)
-	bar = make_bar(layer, "Drag the circles onto the matching parts of your doll. The squares resize.",
-		[["Reset", _reset], ["Cancel", func(): _finish(false)], ["Done", func(): _finish(true)]])
+	bar = make_bar(layer, HINT, [["Find parts", func(): _place(true)], ["Standard", func(): _place(false)],
+		["Reset", _reset], ["Cancel", func(): _finish(false)], ["Done", func(): _finish(true)]])
+	var row: Control = bar.get_meta("row")
+	row.get_child(0).tooltip_text = "Put the points on the parts of the doll the game finds"
+	row.get_child(1).tooltip_text = "Put the points where they go on a doll standing straight and facing forward"
+	row.get_child(2).tooltip_text = "Put the points back where the game placed them"
+	var column = row.get_parent()
+	hint = column.get_child(0)
+	# Prev, the chosen point's name and Next, above the buttons
+	var stepper = HBoxContainer.new()
+	stepper.add_theme_constant_override("separation", 8)
+	column.add_child(stepper)
+	column.move_child(stepper, row.get_index())
+	stepper.add_child(_step_button("Prev", -1))
+	title = Label.new()
+	title.theme_type_variation = &"ToastLabel"
+	title.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	title.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	title.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	title.custom_minimum_size = Vector2(120, 0)
+	title.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	stepper.add_child(title)
+	stepper.add_child(_step_button("Next", 1))
+
+func _step_button(text:String, step:int) -> Button:
+	var button = Button.new()
+	button.theme_type_variation = &"ToolButton"
+	button.text = text
+	button.focus_mode = Control.FOCUS_NONE
+	button.pressed.connect(func(): _choose(wrapi(chosen + step, 0, len(spots))))
+	return button
 
 func start() -> void:
 	if fitting:
@@ -50,12 +98,19 @@ func start() -> void:
 	sticker_stage.deselect()
 	sticker_stage.hide()
 	bar.show()
+	hint.text = HINT
 	before = body_shaper.controls().map(func(control): return [control.global_position, control.reach])
-	# controls in the same spot share a handle
+	_group()
+	_choose(0)
+
+# Controls in the same spot, on the same landmark, share a point
+func _group() -> void:
+	var was = spots[chosen].controls[0] if chosen < len(spots) else null
 	var by_spot := {}
 	spots = []
 	for control in body_shaper.controls():
-		var key = Vector2i(control.global_position.round())
+		var spot = Vector2i(control.global_position.round())
+		var key = Vector3i(spot.x, spot.y, control.landmark)
 		if not by_spot.has(key):
 			by_spot[key] = {"controls": [], "label": ""}
 			spots.append(by_spot[key])
@@ -67,8 +122,14 @@ func start() -> void:
 			if not name_shown in names:
 				names.append(name_shown)
 		spot.label = ", ".join(names)
-	chosen = -1
 	hovered = -1
+	# keep working on the same point
+	chosen = maxi(0, spots.find_custom(func(spot): return was in spot.controls))
+
+func _choose(index:int) -> void:
+	chosen = index
+	if chosen < len(spots):
+		title.text = "%s\n%d of %d" % [spots[chosen].label, chosen + 1, len(spots)]
 	queue_redraw()
 
 func _finish(keep:bool) -> void:
@@ -90,15 +151,26 @@ func _finish(keep:bool) -> void:
 	queue_redraw()
 	Sfx.play("click")
 
+# Puts the controls on the doll's parts: found in its pictures, or where they usually are
+func _place(find:bool) -> void:
+	if not body_shaper.place_on_parts(find):
+		hint.text = "The doll's picture couldn't be looked at, so the points stay where they are."
+		return
+	hint.text = HINT
+	_group()
+	_choose(chosen)
+	Sfx.play("click")
+
 # Puts every control back where the game placed it
 func _reset() -> void:
 	for control in body_shaper.controls():
 		var placed = body_shaper.default_of(control)
 		control.global_position = placed[0]
 		control.reach = placed[1]
-	queue_redraw()
+	_group()
+	_choose(chosen)
 
-# The middle of a spot, where its handle is
+# The middle of a spot, where its point is
 static func _middle(spot:Dictionary) -> Vector2:
 	return spot.controls[0].global_position
 
@@ -109,17 +181,32 @@ static func _corner(spot:Dictionary) -> Vector2:
 		biggest = biggest.max(control.reach)
 	return _middle(spot) + biggest
 
-# The spot under the point, and whether it was its resize square: [index, Drag], or [-1, NONE]
+# Whether point is inside the control's oval, strip or turn band
+static func _inside(control:Node2D, point:Vector2) -> bool:
+	var away = (point - control.global_position) / control.reach.max(Vector2.ONE)
+	return away.length() < 1.0 if control.shape == BodyControl.Shape.AREA else absf(away.x) < 1.0 and absf(away.y) < 1.0
+
+# What a press at point catches: [spot index, Drag], or [-1, NONE] for nothing.
+# The chosen spot's square and circle come first, then the other dots,
+# then anywhere inside the chosen spot's areas.
 func _spot_at(point:Vector2) -> Array:
-	var best = [-1, Drag.NONE]
+	if chosen < len(spots):
+		if point.distance_to(_corner(spots[chosen])) <= CORNER_SIZE + grab:
+			return [chosen, Drag.RESIZE]
+		if point.distance_to(_middle(spots[chosen])) <= HANDLE_RADIUS + grab:
+			return [chosen, Drag.MOVE]
+	var best = -1
 	var nearest = INF
 	for i in len(spots):
-		for target in [[_corner(spots[i]), Drag.RESIZE, CORNER_SIZE], [_middle(spots[i]), Drag.MOVE, HANDLE_RADIUS]]:
-			var distance = point.distance_to(target[0])
-			if distance <= target[2] + 4 and distance < nearest:
-				nearest = distance
-				best = [i, target[1]]
-	return best
+		var distance = point.distance_to(_middle(spots[i]))
+		if i != chosen and distance <= DOT_RADIUS + grab and distance < nearest:
+			nearest = distance
+			best = i
+	if best >= 0:
+		return [best, Drag.MOVE]
+	if chosen < len(spots) and spots[chosen].controls.any(func(control): return _inside(control, point)):
+		return [chosen, Drag.MOVE]
+	return [-1, Drag.NONE]
 
 func _unhandled_input(event:InputEvent) -> void:
 	if not fitting:
@@ -127,23 +214,29 @@ func _unhandled_input(event:InputEvent) -> void:
 	# nothing else (stickers, undo...) reacts while fitting
 	get_viewport().set_input_as_handled()
 	var point = get_canvas_transform().affine_inverse() * event.position if event is InputEventMouse else Vector2.ZERO
-	if event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
+	if event is InputEventMouseButton and event.button_index in [MOUSE_BUTTON_WHEEL_UP, MOUSE_BUTTON_WHEEL_DOWN]:
+		if event.pressed and drag == Drag.NONE and chosen < len(spots):
+			var factor = WHEEL_STEP if event.button_index == MOUSE_BUTTON_WHEEL_UP else 1.0 / WHEEL_STEP
+			for control in spots[chosen].controls:
+				control.reach = (control.reach * factor).max(Vector2.ONE * 2.0)
+			queue_redraw()
+	elif event is InputEventMouseButton and event.button_index == MOUSE_BUTTON_LEFT:
 		if not event.pressed:
 			drag = Drag.NONE
 			return
 		var found = _spot_at(point)
-		chosen = found[0]
 		drag = found[1]
+		if found[0] < 0:
+			return
+		_choose(found[0])
 		drag_start_point = point
-		if chosen >= 0:
-			drag_start = spots[chosen].controls.map(func(control): return [control.global_position, control.reach])
-		queue_redraw()
+		drag_start = spots[chosen].controls.map(func(control): return [control.global_position, control.reach])
 	elif event is InputEventMouseMotion and drag == Drag.NONE:
 		var under = _spot_at(point)[0]
 		if under != hovered:
 			hovered = under
 			queue_redraw()
-	elif event is InputEventMouseMotion and drag != Drag.NONE:
+	elif event is InputEventMouseMotion:
 		var offset = point - drag_start_point
 		var controls = spots[chosen].controls
 		for i in len(controls):
@@ -155,8 +248,17 @@ func _unhandled_input(event:InputEvent) -> void:
 				var factor = ((corner + offset) / corner.max(Vector2.ONE)).clamp(Vector2.ONE * 0.2, Vector2.ONE * 5.0)
 				controls[i].reach = (drag_start[i][1] * factor).max(Vector2.ONE * 2.0)
 		queue_redraw()
-	elif event is InputEventKey and event.pressed and not event.echo:
-		if event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
+	elif event is InputEventKey and event.pressed:
+		var nudge = {KEY_LEFT: Vector2.LEFT, KEY_RIGHT: Vector2.RIGHT, KEY_UP: Vector2.UP, KEY_DOWN: Vector2.DOWN}
+		if event.keycode in nudge and drag == Drag.NONE and chosen < len(spots):
+			for control in spots[chosen].controls:
+				control.global_position += nudge[event.keycode] * (10.0 if event.shift_pressed else 1.0)
+			queue_redraw()
+		elif event.echo:
+			return
+		elif event.keycode == KEY_TAB and not spots.is_empty():
+			_choose(wrapi(chosen + (-1 if event.shift_pressed else 1), 0, len(spots)))
+		elif event.keycode in [KEY_ENTER, KEY_KP_ENTER]:
 			_finish(true)
 		elif event.keycode == KEY_ESCAPE:
 			_finish(false)
@@ -169,58 +271,56 @@ static func _corner_from(pairs:Array) -> Vector2:
 	return biggest
 
 func _draw() -> void:
-	if not fitting:
+	if not fitting or chosen >= len(spots):
 		return
-	var lit = [chosen] if hovered == chosen else [chosen, hovered]
+	# the hovered spot's areas, faintly, so the mouse can show what a dot is
+	if hovered >= 0 and hovered != chosen:
+		for control in spots[hovered].controls:
+			control.draw_shape(self, control.global_position, Color(_color(spots[hovered]), 0.35))
+	var spot = spots[chosen]
+	var color = _color(spot)
+	for control in spot.controls:
+		control.draw_shape(self, control.global_position, Color(color, 0.9))
+	# the other spots are dots
 	for i in len(spots):
-		var faded = Color(_color(spots[i]), 0.9 if i in lit else 0.3)
-		for control in spots[i].controls:
-			control.draw_shape(self, control.global_position, faded)
-	# handles on top of all the shapes, the chosen and hovered ones last
-	var order = range(len(spots)).filter(func(i): return not i in lit)
-	order += lit.filter(func(i): return i >= 0)
-	for i in order:
-		var spot = spots[i]
-		var color = _color(spot)
-		var middle = _middle(spot)
-		draw_circle(middle, HANDLE_RADIUS, Color.WHITE)
-		draw_circle(middle, HANDLE_RADIUS, color, false, 2.0, true)
-		draw_circle(middle, 2.5, color)
-		var corner = _corner(spot)
-		draw_rect(Rect2(corner - Vector2.ONE * CORNER_SIZE / 2, Vector2.ONE * CORNER_SIZE), Color.WHITE)
-		draw_rect(Rect2(corner - Vector2.ONE * CORNER_SIZE / 2, Vector2.ONE * CORNER_SIZE), color, false, 1.5)
-	_draw_labels(lit)
+		if i != chosen:
+			draw_circle(_middle(spots[i]), DOT_RADIUS, Color.WHITE)
+			draw_circle(_middle(spots[i]), DOT_RADIUS, Color(_color(spots[i]), 1.0 if i == hovered else 0.6), false, 1.5, true)
+	# the chosen spot's circle and square on top
+	var middle = _middle(spot)
+	draw_circle(middle, HANDLE_RADIUS, Color.WHITE)
+	draw_circle(middle, HANDLE_RADIUS, color, false, 2.0, true)
+	draw_circle(middle, 2.5, color)
+	var corner = _corner(spot)
+	draw_rect(Rect2(corner - Vector2.ONE * CORNER_SIZE / 2, Vector2.ONE * CORNER_SIZE), Color.WHITE)
+	draw_rect(Rect2(corner - Vector2.ONE * CORNER_SIZE / 2, Vector2.ONE * CORNER_SIZE), color, false, 1.5)
+	var taken = [_draw_label(chosen, [])]
+	if hovered >= 0 and hovered != chosen:
+		_draw_label(hovered, taken)
 
 static func _color(spot:Dictionary) -> Color:
 	return SWING_COLOR if spot.controls.any(func(control): return control.swing > 0.0) else COLOR
 
-# Names the handles, beside them where there is room. The chosen and hovered
-# handles are always named; a name that would cover another is left out.
-func _draw_labels(lit:Array) -> void:
+# Names a spot beside its point: on the right, or else left, above or below it,
+# wherever it doesn't cover the boxes in taken. Returns the box it took.
+func _draw_label(index:int, taken:Array) -> Rect2:
 	var font = ThemeDB.fallback_font
-	var taken := []
-	var order = lit.filter(func(i): return i >= 0) + range(len(spots)).filter(func(i): return not i in lit)
-	for i in order:
-		var size = font.get_string_size(spots[i].label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE)
-		var middle = _middle(spots[i])
-		var gap = HANDLE_RADIUS + 3
-		# right, left, above and below the handle
-		var places = [middle + Vector2(gap, -size.y / 2), middle + Vector2(-gap - size.x, -size.y / 2),
-			middle + Vector2(-size.x / 2, -gap - size.y), middle + Vector2(-size.x / 2, gap)]
-		var box = null
-		for place in places:
-			var tried = Rect2(place, size)
-			if not taken.any(func(other): return other.intersects(tried.grow(1))):
-				box = tried
-				break
-		if box == null:
-			if not i in lit:
-				continue
-			box = Rect2(places[0], size)
-		taken.append(box)
-		var baseline = box.position + Vector2(0, font.get_ascent(LABEL_SIZE))
-		draw_string_outline(font, baseline, spots[i].label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, 3, Color.WHITE)
-		draw_string(font, baseline, spots[i].label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, _color(spots[i]).darkened(0.3))
+	var label = spots[index].label
+	var size = font.get_string_size(label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE)
+	var middle = _middle(spots[index])
+	var gap = HANDLE_RADIUS + 3
+	var places = [middle + Vector2(gap, -size.y / 2), middle + Vector2(-gap - size.x, -size.y / 2),
+		middle + Vector2(-size.x / 2, -gap - size.y), middle + Vector2(-size.x / 2, gap)]
+	var box = Rect2(places[0], size)
+	for place in places:
+		var tried = Rect2(place, size)
+		if not taken.any(func(other): return other.intersects(tried.grow(1))):
+			box = tried
+			break
+	var baseline = box.position + Vector2(0, font.get_ascent(LABEL_SIZE))
+	draw_string_outline(font, baseline, label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, 3, Color.WHITE)
+	draw_string(font, baseline, label, HORIZONTAL_ALIGNMENT_LEFT, -1, LABEL_SIZE, _color(spots[index]).darkened(0.3))
+	return box
 
 # The panel with a hint and buttons, where the menu usually is, so the whole doll can be
 # reached (the doll goes up to the top of the screen). The sculpt brush (body_sculptor.gd)

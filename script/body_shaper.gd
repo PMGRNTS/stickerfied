@@ -18,7 +18,8 @@
 # with the hips under it), lag behind and swing back.
 # Stickers follow the doll's shape, but not these small movements.
 #
-# Players can move the controls to fit their own doll (see body_fitter.gd).
+# Players can move the controls to fit their own doll (see body_fitter.gd), or have the
+# game put the controls with a Landmark on the doll's parts (see body_finder.gd).
 # Each body picture (the first layer after the backgrounds) keeps its own fit,
 # saved on the player's device.
 
@@ -29,6 +30,7 @@ signal shape_changed
 
 const BodyControl = preload("res://script/body_control.gd")
 const BodySculpt = preload("res://script/body_sculpt.gd")
+const BodyFinder = preload("res://script/body_finder.gd")
 # Where outfits keep the sculpt brush's pushes, among the sliders' values
 const SCULPT := "_sculpt"
 const FIT_FILE := "user://body_fit.json"
@@ -250,6 +252,43 @@ func _place_controls() -> void:
 		if moved is Dictionary:
 			control.global_position = to_screen * Vector2(float(moved.get("x", 0)), float(moved.get("y", 0)))
 			control.reach = Vector2(float(moved.get("reach_x", 1)), float(moved.get("reach_y", 1))).max(Vector2.ONE)
+
+# Puts the controls that have a landmark on that part of the body picture worn now
+# (see body_finder.gd): where it usually is on a doll standing straight and facing forward,
+# or, with find, where it is found in the doll's pictures. Controls on the same landmark
+# and of the same shape keep their sizes compared to each other.
+# Returns false when the body picture can't be looked at.
+func place_on_parts(find:bool) -> bool:
+	if layers.is_empty() or layers[0].texture == null:
+		return false
+	var picture = layers[0].texture.get_image()
+	if picture == null:
+		return false
+	var others := []
+	if find:
+		for layer in layers.slice(1):
+			var image = layer.texture.get_image() if layer.visible and layer.texture else null
+			if image:
+				others.append(image)
+	var landmarks = BodyFinder.find(picture, others) if find else BodyFinder.standard(picture)
+	if landmarks.is_empty():
+		return false
+	var pixel = image_size / Vector2(picture.get_size()) # from the picture's pixels to a layer's
+	var corner = middle - image_size / 2
+	var biggest := {}
+	for control in controls():
+		var key = Vector2i(control.landmark, control.shape)
+		biggest[key] = biggest.get(key, Vector2.ONE).max(default_of(control)[1])
+	for control in controls():
+		var found = landmarks.get(control.landmark)
+		if found == null:
+			continue
+		var size = found.get("turn", found.size) if control.shape == BodyControl.Shape.TURN else found.size
+		size *= pixel * to_screen.get_scale().abs() / control.global_scale.abs()
+		var share = default_of(control)[1] / biggest[Vector2i(control.landmark, control.shape)]
+		control.global_position = to_screen * (corner + found.at * pixel)
+		control.reach = (size * share).max(Vector2.ONE * 2.0)
+	return true
 
 
 #####################################
