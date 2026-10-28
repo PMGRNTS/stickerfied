@@ -1,4 +1,4 @@
-# The tool buttons around the menu: undo/redo, random, reset,
+# The tool buttons around the menu: undo/redo, random, reset, zoom,
 # save, saved outfits, share codes, photo, AI Create, AI Stylist and challenges.
 # Move or restyle the buttons in GUI/toolbar.tscn.
 
@@ -13,6 +13,8 @@ extends Control
 @export var ai_stylist_dialog: OverlayDialog
 # Its selection frame is hidden while taking a photo
 @export var sticker_stage: Node2D
+# Zooms in on the doll (see stage_zoom.gd); photos are taken zoomed out
+@export var stage_zoom: Node
 
 const THUMBNAIL_SIZE := Vector2i(180, 120)
 const SOUND_ON_ICON = preload("res://GUI/sound_on.svg")
@@ -34,6 +36,13 @@ func _ready() -> void:
 	%ChallengeBar.judge_requested.connect(func(): ai_stylist_dialog.open_for(ai_stylist_dialog.Mode.JUDGE))
 	%ChallengeBar.message.connect(show_message)
 	interactivity.outfit_changed.connect(_update_buttons)
+	if stage_zoom:
+		%ZoomInButton.pressed.connect(stage_zoom.zoom_in)
+		%ZoomOutButton.pressed.connect(stage_zoom.zoom_out)
+		%ZoomResetButton.pressed.connect(stage_zoom.reset)
+		stage_zoom.zoom_changed.connect(_show_zoom)
+	else:
+		%ZoomBar.hide()
 	%SoundButton.pressed.connect(func(): Sfx.set_muted(not Sfx.is_muted()))
 	Sfx.muted_changed.connect(_show_sound_state)
 	_show_sound_state(Sfx.is_muted())
@@ -42,6 +51,11 @@ func _ready() -> void:
 func _show_sound_state(muted: bool) -> void:
 	%SoundButton.icon = SOUND_OFF_ICON if muted else SOUND_ON_ICON
 	%SoundButton.tooltip_text = "Sound is off" if muted else "Sound is on"
+
+func _show_zoom(zoom: float) -> void:
+	%ZoomResetButton.text = "%d%%" % roundi(zoom * 100)
+	%ZoomOutButton.disabled = zoom <= 1.0
+	%ZoomInButton.disabled = zoom >= stage_zoom.MAX_ZOOM
 
 func _update_buttons() -> void:
 	%UndoButton.disabled = interactivity.undo_stack.is_empty()
@@ -74,12 +88,15 @@ func show_message(text: String) -> void:
 	toast_tween.tween_callback(%Toast.hide)
 
 
-# Takes a picture of the doll and background, without the menus
+# Takes a picture of the doll and background, without the menus, zoomed out
 func capture_scene() -> Image:
 	sticker_stage.deselect()
 	ui_root.hide()
+	var view = get_viewport().canvas_transform
+	get_viewport().canvas_transform = Transform2D()
 	await RenderingServer.frame_post_draw
 	var image = get_viewport().get_texture().get_image()
+	get_viewport().canvas_transform = view
 	ui_root.show()
 	return image
 

@@ -3,15 +3,20 @@
 #   - drag a box over empty space to select several stickers, Shift + click adds or
 #     removes one, Ctrl/Cmd + A selects them all. Selected stickers change together.
 #   - drag the round handle at the corner to resize and turn the selection
+#   - drag the square handles on the right and bottom edges to make one sticker
+#     wider or taller without keeping its shape (the opposite edge stays put)
 #   - the red handle (or the Delete key) takes it off
 #   - the green handle (or the D key) makes a copy, the bottom-left handle (or F) mirrors it
 #   - the eraser handle at the top (or the E key) rubs out parts of one sticker (see picture_upload.gd)
 #   - mouse wheel resizes the selection, Shift + wheel turns it
 # Changes are sent to interactivity.gd when the player lets go, so they can be undone.
 # Stickers follow the doll's shape (the Body menu): outfits keep where each sticker is on
-# the doll as drawn, and it is shown moved, turned and grown along with that part of the doll.
+# the doll as drawn, and its picture is bent along with that part of the doll, breathing too
+# (see sticker_mesh.gd). Its frame and handles move, turn and grow with it, but stay straight.
 
 extends Node2D
+
+const StickerMesh = preload("res://script/sticker_mesh.gd")
 
 # The player wants to erase parts of the sticker at this index
 signal erase_requested(index:int)
@@ -33,12 +38,16 @@ const COPY_OFFSET := Vector2(24, 24)
 const GROUP_PADDING := 6.0
 # A selection box smaller than this (in pixels) counts as a click
 const MIN_BOX_SIZE := 4.0
+# A sticker's picture is bent on a grid with squares about this many pixels across,
+# and at most this many squares each way
+const MESH_SPACING := 16.0
+const MAX_MESH_SQUARES := 16
 
-enum Drag { NONE, MOVE, TRANSFORM, BOX }
+enum Drag { NONE, MOVE, TRANSFORM, STRETCH, BOX }
 
 var drawn := [] # the sticker data from the outfit: where they are on the doll as drawn
 var stickers := [] # the same stickers where they are shown, on the reshaped doll
-var sprites := [] # one Sprite2D per sticker
+var sprites := [] # one Sprite2D per sticker, not drawn: its child StickerMesh shows the picture
 var selection := [] # indexes of the selected stickers, lowest first
 var drag := Drag.NONE
 var drag_start_point := Vector2.ZERO
@@ -48,7 +57,9 @@ var drag_start_frame := {}
 var drag_pivot := Vector2.ZERO
 var drag_factor := 1.0
 var drag_angle := 0.0
+var drag_axis := 0 # the edge being stretched: 0 makes the sticker wider, 1 taller
 var changed_while_dragging := false
+var breathed := 0.0 # how far the stickers are shown breathed in
 
 @onready var handles: Node2D = Node2D.new()
 @onready var commit_timer: Timer = Timer.new()
@@ -75,6 +86,11 @@ func show_stickers(new_stickers:Array) -> void:
 	stickers = drawn.map(_shown)
 	while len(sprites) < len(stickers):
 		var sprite = Sprite2D.new()
+		sprite.self_modulate = Color.TRANSPARENT
+		var mesh = StickerMesh.new()
+		sprite.add_child(mesh)
+		# the eraser shows its work on the sprite's texture (see picture_upload.gd)
+		sprite.texture_changed.connect(func(): mesh.texture = sprite.texture)
 		add_child(sprite)
 		sprites.append(sprite)
 	while len(sprites) > len(stickers):
@@ -89,14 +105,74 @@ func show_stickers(new_stickers:Array) -> void:
 
 func _place_sprite(i:int) -> void:
 	sprites[i].position = Vector2(stickers[i].x, stickers[i].y)
-	sprites[i].scale = Vector2.ONE * stickers[i].scale
+	sprites[i].scale = Vector2(stickers[i].get("stretch", 1.0), 1.0) * stickers[i].scale
 	sprites[i].rotation = stickers[i].rot
 	sprites[i].flip_h = stickers[i].get("flip", false)
+	_bend(i)
+
+# Lays a grid over sticker i's picture and bends it along with the doll:
+# the sticker is placed on the doll as drawn, and each grid point goes where the doll's
+# shape moves that spot. The points are kept in the sprite's own coordinates.
+func _bend(i:int) -> void:
+	var sprite: Sprite2D = sprites[i]
+	var mesh = sprite.get_child(0)
+	if sprite.texture == null:
+		return
+	var size = sprite.texture.get_size()
+	var squares = Vector2i((size * sprite.scale.abs() / MESH_SPACING).ceil()).clamp(
+		Vector2i.ONE, Vector2i.ONE * MAX_MESH_SQUARES)
+	var flat := PackedVector2Array() # the grid on the sticker, not bent
+	var uvs := PackedVector2Array()
+	var colors := PackedColorArray()
+	var triangles := PackedInt32Array()
+	for row in squares.y + 1:
+		for column in squares.x + 1:
+			var uv = Vector2(column, row) / Vector2(squares)
+			flat.append((uv - Vector2(0.5, 0.5)) * size)
+			uvs.append(Vector2(1.0 - uv.x, uv.y) if sprite.flip_h else uv)
+			colors.append(Color.WHITE)
+			if row < squares.y and column < squares.x:
+				var corner = row * (squares.x + 1) + column
+				var below = corner + squares.x + 1
+				triangles.append_array([corner, corner + 1, below + 1, corner, below + 1, below])
+	mesh.uvs = uvs
+	mesh.colors = colors
+	mesh.triangles = triangles
+	mesh.still = flat
+	mesh.inhaled = PackedVector2Array()
+	if body_shaper:
+		var on_doll = _drawn(stickers[i])
+		var placed = Transform2D(on_doll.rot, Vector2(on_doll.get("stretch", 1.0), 1.0) * on_doll.scale,
+			0.0, Vector2(on_doll.x, on_doll.y)) * flat
+		var back = sprite.transform.affine_inverse()
+		mesh.still = back * body_shaper.bent(placed)
+		if body_shaper.can_breathe:
+			var inhaled = back * body_shaper.bent(placed, 1.0)
+			if inhaled != mesh.still:
+				mesh.inhaled = inhaled
+	mesh.set_points(mesh.still)
+	mesh.breathe(breathed)
+
+# Stickers on the part of the doll that breathes breathe with it.
+# The handles are drawn in screen pixels, so they stay the same size when zoomed in (see stage_zoom.gd).
+func _process(_delta:float) -> void:
+	var to_screen = get_canvas_transform()
+	if handles.transform != to_screen.affine_inverse():
+		handles.transform = to_screen.affine_inverse()
+		handles.queue_redraw()
+	if body_shaper == null or body_shaper.breath == breathed or not visible:
+		return
+	breathed = body_shaper.breath
+	for sprite in sprites:
+		sprite.get_child(0).breathe(breathed)
 
 # Where a new sticker goes, on the doll as drawn (where outfits keep stickers)
 func new_sticker_position() -> Vector2:
 	var center = spawn_point.position if spawn_point else get_viewport_rect().size / 2
 	var spot = center + Vector2(randf_range(-50, 50), randf_range(-140, 0))
+	# when zoomed in, somewhere that can be seen
+	var seen = (get_canvas_transform().affine_inverse() * get_viewport_rect()).grow(-40)
+	spot = spot.clamp(seen.position, seen.end)
 	return body_shaper.unshaped(spot) if body_shaper else spot
 
 # The doll changed shape: the stickers move with it
@@ -126,7 +202,7 @@ func _drawn(sticker:Dictionary) -> Dictionary:
 	if sticker.has("from") and _same_place(sticker, _shown(sticker.from)):
 		return sticker.from.duplicate()
 	var result = {"id": sticker.id, "x": sticker.x, "y": sticker.y, "scale": sticker.scale,
-		"rot": sticker.rot, "flip": sticker.get("flip", false)}
+		"stretch": sticker.get("stretch", 1.0), "rot": sticker.rot, "flip": sticker.get("flip", false)}
 	if body_shaper == null:
 		return result
 	var spot = body_shaper.unshaped(Vector2(sticker.x, sticker.y))
@@ -139,6 +215,7 @@ func _drawn(sticker:Dictionary) -> Dictionary:
 
 static func _same_place(a:Dictionary, b:Dictionary) -> bool:
 	return is_equal_approx(a.x, b.x) and is_equal_approx(a.y, b.y) and is_equal_approx(a.scale, b.scale) \
+		and is_equal_approx(a.get("stretch", 1.0), b.get("stretch", 1.0)) \
 		and is_equal_approx(a.rot, b.rot) and a.get("flip", false) == b.get("flip", false)
 
 # Selects one sticker, or nothing when index is -1
@@ -216,23 +293,23 @@ func _to_stage(window_position:Vector2) -> Vector2:
 func _on_press(point:Vector2, shift:bool) -> void:
 	if not selection.is_empty() and not shift:
 		var corners = _frame_corners()
-		if point.distance_to(corners[1]) <= HANDLE_RADIUS + 3:
+		if point.distance_to(corners[1]) <= _grab_distance():
 			_remove_selection()
 			get_viewport().set_input_as_handled()
 			return
-		if point.distance_to(corners[0]) <= HANDLE_RADIUS + 3:
+		if point.distance_to(corners[0]) <= _grab_distance():
 			_duplicate_selection()
 			get_viewport().set_input_as_handled()
 			return
-		if point.distance_to(corners[3]) <= HANDLE_RADIUS + 3:
+		if point.distance_to(corners[3]) <= _grab_distance():
 			_flip_selection()
 			get_viewport().set_input_as_handled()
 			return
-		if len(selection) == 1 and point.distance_to(_eraser_handle(corners)) <= HANDLE_RADIUS + 3:
+		if len(selection) == 1 and point.distance_to(_eraser_handle(corners)) <= _grab_distance():
 			erase_requested.emit(selection[0])
 			get_viewport().set_input_as_handled()
 			return
-		if point.distance_to(corners[2]) <= HANDLE_RADIUS + 3:
+		if point.distance_to(corners[2]) <= _grab_distance():
 			drag_start_frame = _frame()
 			drag_pivot = drag_start_frame.center
 			drag_start_point = point
@@ -243,6 +320,15 @@ func _on_press(point:Vector2, shift:bool) -> void:
 			changed_while_dragging = false
 			get_viewport().set_input_as_handled()
 			return
+		for axis in 2:
+			if len(selection) == 1 and point.distance_to(_stretch_handle(corners, axis)) <= _grab_distance():
+				drag_axis = axis
+				drag_start_point = point
+				drag_start = _capture()
+				drag = Drag.STRETCH
+				changed_while_dragging = false
+				get_viewport().set_input_as_handled()
+				return
 
 	var index = _sticker_at(point)
 	if shift and index >= 0:
@@ -289,6 +375,9 @@ func _on_drag(point:Vector2) -> void:
 		var factor = vector.length() / start_vector.length() if start_vector.length() > 1 else 1.0
 		drag_angle = start_vector.angle_to(vector)
 		drag_factor = _transform_selection(drag_start, drag_pivot, factor, drag_angle)
+	elif drag == Drag.STRETCH:
+		changed_while_dragging = true
+		_stretch_sticker(drag_start[0], drag_axis, point - drag_start_point)
 	handles.queue_redraw()
 
 func _on_release(point:Vector2, shift:bool) -> void:
@@ -313,7 +402,7 @@ func _on_release(point:Vector2, shift:bool) -> void:
 # The selected stickers' positions, sizes and turns, to change them from
 func _capture() -> Array:
 	return selection.map(func(i): return {"i": i, "pos": Vector2(stickers[i].x, stickers[i].y),
-		"scale": stickers[i].scale, "rot": stickers[i].rot})
+		"scale": stickers[i].scale, "stretch": stickers[i].get("stretch", 1.0), "rot": stickers[i].rot})
 
 # Moves the selection, but not past the edge of the screen
 func _move_selection(start:Array, offset:Vector2) -> void:
@@ -346,6 +435,33 @@ func _transform_selection(start:Array, pivot:Vector2, factor:float, angle:float)
 		_place_sprite(sticker.i)
 	handles.queue_redraw()
 	return factor
+
+# Makes one sticker wider (axis 0) or taller (axis 1) by how far its edge was pulled,
+# keeping the opposite edge where it is. "scale" stays the sticker's height and
+# "stretch" how much wider it is than its picture's shape.
+func _stretch_sticker(start:Dictionary, axis:int, pulled:Vector2) -> void:
+	var picture = sprites[start.i].texture.get_size() if sprites[start.i].texture else Vector2.ONE
+	var size = picture * Vector2(start.stretch, 1.0) * start.scale
+	var direction = (Vector2.RIGHT if axis == 0 else Vector2.DOWN).rotated(start.rot)
+	var length = size[axis] + pulled.dot(direction)
+	var limits: Vector2 = interactivity.STICKER_SCALE_LIMITS
+	var stretch_limits: Vector2 = interactivity.STICKER_STRETCH_LIMITS
+	var scale = start.scale
+	if axis == 1:
+		# the width stays as it was, so the height stops where the stretch would go too far
+		var lowest = maxf(limits.x, size.x / (picture.x * stretch_limits.y))
+		var highest = minf(limits.y, size.x / (picture.x * stretch_limits.x))
+		scale = clampf(length / picture.y, lowest, highest)
+		length = size.x
+	var stretch = clampf(length / (picture.x * scale), stretch_limits.x, stretch_limits.y)
+	var new_size = picture * Vector2(stretch, 1.0) * scale
+	var pos = start.pos + direction * (new_size[axis] - size[axis]) / 2
+	var sticker = stickers[start.i]
+	sticker.x = pos.x
+	sticker.y = pos.y
+	sticker.scale = scale
+	sticker.stretch = stretch
+	_place_sprite(start.i)
 
 func _bring_to_front(index:int) -> int:
 	stickers.append(stickers.pop_at(index))
@@ -415,6 +531,17 @@ func _sticker_at(point:Vector2) -> int:
 			return i
 	return -1
 
+# How close (on the stage) the pointer must be to a handle to grab it
+func _grab_distance() -> float:
+	return (HANDLE_RADIUS + 3) / get_canvas_transform().get_scale().x
+
+# The middle of the selection's frame, which the zoom buttons zoom around
+func selection_middle() -> Vector2:
+	return _frame().center
+
+func is_on_selection(point:Vector2) -> bool:
+	return _is_on_selection(point)
+
 func _is_on_selection(point:Vector2) -> bool:
 	return _sticker_at(point) in selection or (len(selection) > 1 and _frame_has_point(point))
 
@@ -442,7 +569,7 @@ func _frame() -> Dictionary:
 	if len(selection) == 1:
 		var i = selection[0]
 		var size = sprites[i].texture.get_size() if sprites[i].texture else Vector2.ZERO
-		return {"center": sprites[i].position, "half": size / 2 * stickers[i].scale, "angle": stickers[i].rot}
+		return {"center": sprites[i].position, "half": size / 2 * sprites[i].scale, "angle": stickers[i].rot}
 	var box = Rect2(sprites[selection[0]].position, Vector2.ZERO)
 	for i in selection:
 		for corner in _corners(i):
@@ -460,6 +587,11 @@ func _frame_corners() -> Array:
 static func _eraser_handle(corners:Array) -> Vector2:
 	return (corners[0] + corners[1]) / 2
 
+# The stretch handles sit in the middle of the right edge (axis 0, wider)
+# and the bottom edge (axis 1, taller), one sticker only
+static func _stretch_handle(corners:Array, axis:int) -> Vector2:
+	return (corners[1] + corners[2]) / 2 if axis == 0 else (corners[2] + corners[3]) / 2
+
 func _frame_has_point(point:Vector2) -> bool:
 	var frame = _frame()
 	var local = (point - frame.center).rotated(-frame.angle)
@@ -470,21 +602,24 @@ func _frame_has_point(point:Vector2) -> bool:
 ############## HANDLES ##############
 #####################################
 
+# Draws in screen pixels: points on the stage go through to_screen first
 func _draw_handles() -> void:
+	var to_screen = get_canvas_transform()
+	var on_screen = func(points:Array): return points.map(func(p): return to_screen * p)
 	if drag == Drag.BOX:
 		var box = _box(drag_start_point, box_end)
-		handles.draw_rect(box, Color(FRAME_COLOR, 0.12))
-		handles.draw_rect(box, FRAME_COLOR, false, 1.5)
+		handles.draw_rect(to_screen * box, Color(FRAME_COLOR, 0.12))
+		handles.draw_rect(to_screen * box, FRAME_COLOR, false, 1.5)
 		# outline the stickers that will be selected
 		for i in _stickers_in_box(box):
-			_draw_outline(_corners(i), Color(FRAME_COLOR, 0.6), 1.5)
+			_draw_outline(on_screen.call(_corners(i)), Color(FRAME_COLOR, 0.6), 1.5)
 		return
 	if selection.is_empty():
 		return
 	if len(selection) > 1:
 		for i in selection:
-			_draw_outline(_corners(i), Color(FRAME_COLOR, 0.45), 1.0)
-	var corners = _frame_corners()
+			_draw_outline(on_screen.call(_corners(i)), Color(FRAME_COLOR, 0.45), 1.0)
+	var corners = on_screen.call(_frame_corners())
 	_draw_outline(corners, FRAME_COLOR, 2.0)
 	# resize & turn handle: a ring with an arrow
 	handles.draw_circle(corners[2], HANDLE_RADIUS, Color.WHITE)
@@ -508,6 +643,18 @@ func _draw_handles() -> void:
 		var tip = corners[3] + Vector2(reach * side, 0)
 		handles.draw_line(tip, tip + Vector2(-3 * side, -3), FRAME_COLOR, 2.0, true)
 		handles.draw_line(tip, tip + Vector2(-3 * side, 3), FRAME_COLOR, 2.0, true)
+	# stretch handles: white squares with a line along the way they stretch
+	if len(selection) == 1:
+		var angle = _frame().angle
+		for axis in 2:
+			var middle = _stretch_handle(corners, axis)
+			var half = HANDLE_RADIUS * 0.75
+			var square = [Vector2(-1, -1), Vector2(1, -1), Vector2(1, 1), Vector2(-1, 1)].map(
+				func(corner): return middle + (corner * half).rotated(angle))
+			handles.draw_colored_polygon(PackedVector2Array(square), Color.WHITE)
+			_draw_outline(square, FRAME_COLOR, 2.0)
+			var along = (Vector2.RIGHT if axis == 0 else Vector2.DOWN).rotated(angle) * half * 0.55
+			handles.draw_line(middle - along, middle + along, FRAME_COLOR, 2.0, true)
 	# eraser handle: a ring with a tilted eraser in it
 	if len(selection) == 1:
 		var middle = _eraser_handle(corners)

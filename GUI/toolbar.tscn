@@ -75,6 +75,43 @@ theme_type_variation = &"ToolButton"
 icon_alignment = 1
 expand_icon = true
 
+[node name="ZoomBar" type="HBoxContainer" parent="."]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 16.0
+offset_top = 30.0
+offset_right = 136.0
+offset_bottom = 62.0
+theme_override_constants/separation = 4
+
+[node name="ZoomOutButton" type="Button" parent="ZoomBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+layout_mode = 2
+tooltip_text = "Zoom out (Ctrl -)"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+disabled = true
+text = "-"
+
+[node name="ZoomResetButton" type="Button" parent="ZoomBar"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "Show the whole doll (Ctrl 0). Ctrl + mouse wheel or pinch to zoom, right-drag or Space + drag to look around."
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "100%"
+
+[node name="ZoomInButton" type="Button" parent="ZoomBar"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(34, 0)
+layout_mode = 2
+tooltip_text = "Zoom in (Ctrl +)"
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+text = "+"
+
 [node name="BottomBar" type="VBoxContainer" parent="."]
 layout_mode = 1
 anchors_preset = 3

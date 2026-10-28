@@ -8,9 +8,10 @@
 # "item" is "" when nothing is worn on that layer,
 # "hue" is -1 for original colors, or 0..1 for a recolor.
 # Stickers placed on the doll are kept in a list under "_stickers":
-#   "_stickers": [{"id": "heart.svg", "x": 250, "y": 120, "scale": 0.5, "rot": 0.3, "flip": false}, ...]
-# (x and y are screen positions on the doll as drawn, rot is the rotation in radians,
-# flip mirrors the sticker; on a reshaped doll they move with it, see sticker_stage.gd)
+#   "_stickers": [{"id": "heart.svg", "x": 250, "y": 120, "scale": 0.5, "stretch": 1.0, "rot": 0.3, "flip": false}, ...]
+# (x and y are screen positions on the doll as drawn, scale is the size of its height,
+# stretch makes it wider (above 1) or narrower than its picture, rot is the rotation in radians,
+# flip mirrors the sticker; on a reshaped doll they bend with it, see sticker_stage.gd)
 # The doll's shape (the Body menu's sliders) is kept under "_body":
 #   "_body": {"Waist": -0.3, "Eye size": 0.5, "_sculpt": {"412": [3.5, -1.0], ...}}
 # Each value is from -1 to 1; sliders left in the middle (0) are left out.
@@ -26,6 +27,8 @@ const STICKERS := "_stickers"
 const BODY := "_body"
 const MAX_STICKERS := 30
 const STICKER_SCALE_LIMITS := Vector2(0.1, 6.0)
+# How much narrower or wider than its picture a sticker can be stretched
+const STICKER_STRETCH_LIMITS := Vector2(0.2, 5.0)
 # How big (in pixels) a new sticker is when it is first put on the doll
 const NEW_STICKER_SIZE := 110.0
 # The outfit is saved here after every change, so the game starts where the player left off
@@ -206,7 +209,7 @@ func add_sticker(id:String) -> void:
 	var position = sticker_stage.new_sticker_position()
 	var picture_size = button.image.get_size()
 	new_outfit[STICKERS].append({"id": id, "x": position.x, "y": position.y,
-		"scale": NEW_STICKER_SIZE / maxf(picture_size.x, picture_size.y), "rot": 0.0, "flip": false})
+		"scale": NEW_STICKER_SIZE / maxf(picture_size.x, picture_size.y), "stretch": 1.0, "rot": 0.0, "flip": false})
 	set_outfit(new_outfit)
 	sticker_stage.select(len(outfit[STICKERS]) - 1)
 	if sounds_on:
@@ -267,6 +270,7 @@ func cleaned_outfit(new_outfit:Dictionary) -> Dictionary:
 			"x": snappedf(float(sticker.get("x", 0.0)), 0.1),
 			"y": snappedf(float(sticker.get("y", 0.0)), 0.1),
 			"scale": snappedf(clampf(float(sticker.get("scale", 1.0)), STICKER_SCALE_LIMITS.x, STICKER_SCALE_LIMITS.y), 0.001),
+			"stretch": snappedf(clampf(float(sticker.get("stretch", 1.0)), STICKER_STRETCH_LIMITS.x, STICKER_STRETCH_LIMITS.y), 0.001),
 			"rot": snappedf(wrapf(float(sticker.get("rot", 0.0)), -PI, PI), 0.001),
 			"flip": sticker.get("flip") is bool and sticker.get("flip"),
 		})

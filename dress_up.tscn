@@ -20,6 +20,7 @@
 [ext_resource type="Script" path="res://script/body_control.gd" id="17_control"]
 [ext_resource type="Script" path="res://script/body_fitter.gd" id="18_fitter"]
 [ext_resource type="Script" path="res://script/body_sculptor.gd" id="19_sculptor"]
+[ext_resource type="Script" path="res://script/stage_zoom.gd" id="20_zoom"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -49,7 +50,9 @@ interactivity = NodePath("../Interactivity")
 spawn_point = NodePath("../SpritePlaceholder")
 body_shaper = NodePath("../BodyShaper")
 
-[node name="DressupMenu" type="Control" parent="." unique_id=1380275446]
+[node name="Menus" type="CanvasLayer" parent="."]
+
+[node name="DressupMenu" type="Control" parent="Menus" unique_id=1380275446]
 unique_name_in_owner = true
 layout_mode = 3
 anchors_preset = 15
@@ -62,7 +65,7 @@ size_flags_horizontal = 3
 size_flags_vertical = 3
 theme = ExtResource("7_218i8")
 
-[node name="ButtonTray" type="PanelContainer" parent="DressupMenu" unique_id=1339431818]
+[node name="ButtonTray" type="PanelContainer" parent="Menus/DressupMenu" unique_id=1339431818]
 layout_mode = 1
 anchors_preset = 6
 anchor_left = 1.0
@@ -76,10 +79,10 @@ offset_bottom = 202.0
 grow_horizontal = 0
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="DressupMenu/ButtonTray" unique_id=1237066070]
+[node name="VBoxContainer" type="VBoxContainer" parent="Menus/DressupMenu/ButtonTray" unique_id=1237066070]
 layout_mode = 2
 
-[node name="ScrollContainer" type="ScrollContainer" parent="DressupMenu/ButtonTray/VBoxContainer" unique_id=280947986]
+[node name="ScrollContainer" type="ScrollContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer" unique_id=280947986]
 custom_minimum_size = Vector2(64, 80)
 layout_mode = 2
 size_flags_vertical = 0
@@ -89,41 +92,41 @@ theme_override_constants/scrollbar_v_separation = 20
 horizontal_scroll_mode = 3
 vertical_scroll_mode = 0
 
-[node name="MarginContainer" type="MarginContainer" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer" unique_id=395626096]
+[node name="MarginContainer" type="MarginContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer" unique_id=395626096]
 layout_mode = 2
 theme_override_constants/margin_top = 16
 theme_override_constants/margin_bottom = 20
 
-[node name="CategoryButtons" type="HBoxContainer" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer" unique_id=1024074576]
+[node name="CategoryButtons" type="HBoxContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer" unique_id=1024074576]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("7_218i8")
 
-[node name="ExampleButton" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=644335832 groups=["remove_at_start"]]
+[node name="ExampleButton" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=644335832 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton2" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=278307981 groups=["remove_at_start"]]
+[node name="ExampleButton2" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=278307981 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton3" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=529331027 groups=["remove_at_start"]]
+[node name="ExampleButton3" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=529331027 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton4" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=1406776895 groups=["remove_at_start"]]
+[node name="ExampleButton4" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=1406776895 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton5" type="Button" parent="DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=158043396 groups=["remove_at_start"]]
+[node name="ExampleButton5" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=158043396 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="TabsOfItemsContainer" type="CenterContainer" parent="DressupMenu/ButtonTray/VBoxContainer" unique_id=458730207]
+[node name="TabsOfItemsContainer" type="CenterContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer" unique_id=458730207]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="ExampleVbox" parent="DressupMenu/ButtonTray/VBoxContainer/TabsOfItemsContainer" unique_id=1098066562 groups=["remove_at_start"] instance=ExtResource("1_pm0by")]
+[node name="ExampleVbox" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/TabsOfItemsContainer" unique_id=1098066562 groups=["remove_at_start"] instance=ExtResource("1_pm0by")]
 layout_mode = 2
 
 [node name="SpritePlaceholder" type="Sprite2D" parent="." unique_id=1884174206]
@@ -382,25 +385,26 @@ landmark = 12
 unique_name_in_owner = true
 script = ExtResource("18_fitter")
 body_shaper = NodePath("../BodyShaper")
-ui_root = NodePath("../DressupMenu")
+ui_root = NodePath("../Menus/DressupMenu")
 sticker_stage = NodePath("../StickerStage")
 
 [node name="BodySculptor" type="Node2D" parent="." node_paths=PackedStringArray("body_shaper", "ui_root", "sticker_stage")]
 unique_name_in_owner = true
 script = ExtResource("19_sculptor")
 body_shaper = NodePath("../BodyShaper")
-ui_root = NodePath("../DressupMenu")
+ui_root = NodePath("../Menus/DressupMenu")
 sticker_stage = NodePath("../StickerStage")
 
-[node name="Toolbar" parent="DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage") instance=ExtResource("9_toolbar")]
+[node name="Toolbar" parent="Menus/DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage", "stage_zoom") instance=ExtResource("9_toolbar")]
 layout_mode = 1
-interactivity = NodePath("../../Interactivity")
+interactivity = NodePath("../../../Interactivity")
 ui_root = NodePath("..")
-outfit_gallery = NodePath("../../Popups/OutfitGallery")
-share_dialog = NodePath("../../Popups/ShareDialog")
-ai_create_dialog = NodePath("../../Popups/AICreateDialog")
-ai_stylist_dialog = NodePath("../../Popups/AIStylistDialog")
-sticker_stage = NodePath("../../StickerStage")
+outfit_gallery = NodePath("../../../Popups/OutfitGallery")
+share_dialog = NodePath("../../../Popups/ShareDialog")
+ai_create_dialog = NodePath("../../../Popups/AICreateDialog")
+ai_stylist_dialog = NodePath("../../../Popups/AIStylistDialog")
+sticker_stage = NodePath("../../../StickerStage")
+stage_zoom = NodePath("../../../StageZoom")
 
 [node name="Popups" type="CanvasLayer" parent="."]
 
@@ -416,13 +420,18 @@ picture_upload = NodePath("../../PictureUpload")
 
 [node name="AIStylistDialog" parent="Popups" node_paths=PackedStringArray("interactivity", "toolbar") instance=ExtResource("14_stylist")]
 interactivity = NodePath("../../Interactivity")
-toolbar = NodePath("../../DressupMenu/Toolbar")
+toolbar = NodePath("../../Menus/DressupMenu/Toolbar")
 
 [node name="PictureUpload" type="Node2D" parent="." node_paths=PackedStringArray("interactivity", "sprite_holder", "body_shaper", "ui_root", "sticker_stage", "toolbar")]
 script = ExtResource("15_upload")
 interactivity = NodePath("../Interactivity")
 sprite_holder = NodePath("../SpriteHolder")
 body_shaper = NodePath("../BodyShaper")
-ui_root = NodePath("../DressupMenu")
+ui_root = NodePath("../Menus/DressupMenu")
 sticker_stage = NodePath("../StickerStage")
-toolbar = NodePath("../DressupMenu/Toolbar")
+toolbar = NodePath("../Menus/DressupMenu/Toolbar")
+
+[node name="StageZoom" type="Node" parent="." node_paths=PackedStringArray("sticker_stage", "focus_point")]
+script = ExtResource("20_zoom")
+sticker_stage = NodePath("../StickerStage")
+focus_point = NodePath("../SpritePlaceholder")

@@ -46,6 +46,8 @@ static func _write_index(all:Array) -> void:
 # and written as text. Empty layers are left out to keep the code short.
 # Stickers are stored as "_stickers": [["heart.svg", x, y, scale, rotation], ...]
 # with a 1 added at the end of mirrored stickers: ["heart.svg", x, y, scale, rotation, 1]
+# Stretched stickers add whether they are mirrored (1 or 0) and the stretch:
+# ["heart.svg", x, y, scale, rotation, 0, 1.6] (games made before stretching skip these)
 # The doll's shape is stored as "_body": {"Waist": -0.3, ...} (games made before the
 # Body menu skip it, so their codes and these codes still work in both)
 
@@ -60,8 +62,11 @@ static func to_share_code(outfit:Dictionary) -> String:
 			if not entry.is_empty():
 				compact[STICKERS] = entry.map(func(sticker):
 					var packed = [sticker.id, sticker.x, sticker.y, sticker.scale, sticker.rot]
-					if sticker.get("flip", false):
-						packed.append(1)
+					var stretch = sticker.get("stretch", 1.0)
+					if sticker.get("flip", false) or stretch != 1.0:
+						packed.append(1 if sticker.get("flip", false) else 0)
+					if stretch != 1.0:
+						packed.append(stretch)
 					return packed)
 		elif layer == BODY:
 			if not entry.is_empty():
@@ -93,9 +98,10 @@ static func from_share_code(code:String) -> Dictionary:
 		if layer == STICKERS and entry is Array:
 			outfit[STICKERS] = []
 			for sticker in entry:
-				if sticker is Array and len(sticker) in [5, 6]:
+				if sticker is Array and len(sticker) in [5, 6, 7]:
 					outfit[STICKERS].append({"id": str(sticker[0]), "x": sticker[1], "y": sticker[2],
-						"scale": sticker[3], "rot": sticker[4], "flip": len(sticker) == 6 and sticker[5] == 1})
+						"scale": sticker[3], "stretch": sticker[6] if len(sticker) == 7 else 1.0,
+						"rot": sticker[4], "flip": len(sticker) >= 6 and sticker[5] == 1})
 		elif layer == BODY and entry is Dictionary:
 			outfit[BODY] = entry
 		elif entry is Array and len(entry) == 2:

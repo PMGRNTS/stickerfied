@@ -16,7 +16,7 @@ extends Node
 @onready var interactivity: Node = %Interactivity
 
 
-@onready var category_scroll: ScrollContainer = $DressupMenu/ButtonTray/VBoxContainer/ScrollContainer
+@onready var category_scroll: ScrollContainer = $Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer
 
 @export var button_base : PackedScene
 @export var category_button : PackedScene

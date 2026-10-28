@@ -16,7 +16,7 @@
 # Areas with Swing make layers such as hair hang loose from the top of the area: they move
 # with whatever is above them (long hair follows the head as it tilts, and doesn't widen
 # with the hips under it), lag behind and swing back.
-# Stickers follow the doll's shape, but not these small movements.
+# Stickers bend with the doll's shape and breathe with it, but don't blink or swing.
 #
 # Players can move the controls to fit their own doll (see body_fitter.gd), or have the
 # game put the controls with a Landmark on the doll's parts (see body_finder.gd).
@@ -169,8 +169,8 @@ func shaped(point:Vector2) -> Vector2:
 
 # How the doll's shape moves a point: where it goes ("position"),
 # and how much the doll turns ("angle", in radians) and grows ("scale") there.
-# Stickers use this to move, turn and grow with the part of the doll they are on.
-# Blinking and breathing are left out, so stickers don't twitch.
+# Stickers use this for their frame and handles, which move, turn and grow with the part
+# of the doll they are on. Blinking and breathing are left out, so the handles hold still.
 func pose_at(point:Vector2) -> Dictionary:
 	var active = _active()
 	if active.is_empty():
@@ -180,6 +180,19 @@ func pose_at(point:Vector2) -> Dictionary:
 	var down = _shaped(point + Vector2.DOWN, active) - position
 	return {"position": position, "angle": atan2(across.y - down.x, across.x + down.y),
 		"scale": sqrt(absf(across.cross(down)))}
+
+# Where points on the screen move to on the reshaped doll, breathed in by inhaled (0 to 1).
+# Stickers are bent along with the doll this way. Blinking is left out, so stickers
+# such as sunglasses don't squash shut.
+func bent(points:PackedVector2Array, inhaled := 0.0) -> PackedVector2Array:
+	var active = _active(0.0, inhaled)
+	if active.is_empty():
+		return points
+	var moved := PackedVector2Array()
+	moved.resize(len(points))
+	for k in len(points):
+		moved[k] = _shaped(points[k], active)
+	return moved
 
 # The point on the doll as drawn that the shape moves to point (the opposite of shaped())
 func unshaped(point:Vector2) -> Vector2:

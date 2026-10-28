@@ -154,6 +154,13 @@ Layers:
 Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
 "ToolButton" style in theme.tres):
 - Undo / Redo (also Ctrl+Z and Ctrl+Shift+Z), Random, Reset
+- Zoom (top left): - and + zoom out and in on the selected sticker (or the doll), and the
+  percentage goes back to the whole doll. Ctrl + mouse wheel (Cmd on Mac) or pinching on a
+  trackpad zooms around the pointer, and Ctrl + plus, minus and 0 work too. When zoomed in,
+  drag with the right or middle mouse button, hold Space and drag, or scroll with two fingers
+  on a trackpad to look around. Zooming also works while erasing, sculpting and fitting
+  points. Photos and saved outfits always show the whole doll.
+  The menus are on their own layer ("Menus" in dress_up.tscn), so they don't zoom.
 - The speaker button turns sound on and off (remembered for next time)
 - Save keeps the outfit with a small picture; Outfits lists saved outfits
 - Share gives a code (starting with DU1-) that a friend can paste to wear the same outfit
@@ -170,6 +177,8 @@ placed anywhere on the doll, unlike layers.
 - Click a sticker in the menu to put it on the doll. Drag it to move it.
 - Drag the round handle at its corner to resize and turn it.
   The mouse wheel also resizes it, and Shift + mouse wheel turns it.
+- The square handles on the right and bottom edges make it wider or taller without keeping
+  its shape (the opposite edge stays where it is), to fit it to the doll.
 - The red handle (or the Delete key) takes it off. Clicking a sticker brings it to the front.
 - The green handle (or the D key) makes a copy. The handle at the bottom left (or the F key)
   mirrors it.
@@ -190,7 +199,8 @@ head size, shoulders, waist, hips, legs and height, eye size, eye spacing,
 mouth size, mouth height, cheeks, squint and smile, and a head tilt and lean to pose it.
 The doll blinks and breathes, and long hair swings when the doll moves.
 Every layer bends the same way, so the hair, face and clothes still fit, and
-stickers move, turn and grow with the part of the doll they are on.
+stickers bend with the part of the doll they are on: a sticker on the waist gets wider
+with the waist, and one on the chest breathes with it (stickers don't blink or swing).
 Dragging a slider shows the change; letting go puts it on, so it can be undone.
 Double-click a slider to put it back; "As drawn" puts everything back, sculpting too.
 The shape is saved with outfits and included in share codes, and Random leaves it alone.
