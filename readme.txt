@@ -319,8 +319,26 @@ sticker menu, and all of them are kept for next time. They have a small "x" butt
 - Doll items: pick "Doll item" and a layer (the sparkle button in a layer's menu picks it
   for you), and describe it. The new item is put on the doll to be moved into place and
   resized, the same way as players' own pictures (see above); Done adds it to that
-  layer's menu. It can be recolored like any other item. AI models don't know your
-  doll's exact shape, so the player lines it up by hand.
+  layer's menu. It can be recolored like any other item.
+- Fit to the doll (next to the layer, on by default): the model is sent a picture of the doll
+  as drawn, wearing its other layers, and draws the item where it goes on it. The item then
+  starts out in that spot, and the player only nudges it if it's a little off. A new body
+  (the first doll layer, Skin in the example) is drawn over the old one in the same pose, so
+  clothes made for the old body still fit. It needs an OpenRouter model that can look at a
+  picture while it draws (most can; the box can't be ticked for the others), and models don't
+  always get it exactly right. Change what the model is told with "Fit Prompt" and
+  "Fit Body Prompt" in the Inspector, and what a new body looks like with "Body Prompt Suffix".
+- Write it for me: a text model on OpenRouter turns a short idea ("a pirate") into a detailed
+  description of how the character, item or place looks, and puts it in the description box
+  to change or Generate (Ctrl+Z brings the idea back). With the box empty it makes something up.
+  It uses the OpenRouter key, even when Provider is set to another one. It knows what is being
+  made (a background, a sticker, a doll item, or a new character for the doll's body layer)
+  and the style, and it is shown a picture of the doll (without the layer being replaced),
+  so what it writes suits the character. That needs a writer model that accepts pictures;
+  untick "Writer Sees Doll" in the Inspector for one that doesn't. "Writer prompt" shows what the writer is told first (its system prompt) and
+  which model writes (the default is anthropic/claude-haiku-5.5): players can change both,
+  and Reset puts them back. Change the defaults with "Writer Model" and "Writer Instructions"
+  on Popups/AICreateDialog in the Inspector.
 - Stickers and doll items are asked to be drawn flat, like paper doll cutouts, so clothes
   don't show their inside through the neck or hem ("Flat Prompt" in the Inspector, see below).
   The Shiny 3D and Photo styles keep their depth and use "Depth Prompt" instead, which still

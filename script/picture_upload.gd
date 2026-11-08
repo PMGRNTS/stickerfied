@@ -11,6 +11,7 @@
 # A plain background (such as white paper) is removed from stickers and doll items.
 # Pictures are kept in user://generated/ like AI pictures, so they're there next time.
 # AI Create sends the doll items it makes through the same placing step (place_picture).
+# Items it drew on a picture of the doll (doll_picture) start out where they were drawn.
 
 extends Node2D
 
@@ -170,19 +171,21 @@ func add_picture(bytes:PackedByteArray, file_name:String, layer:String) -> void:
 
 # Puts a picture on the doll so the player can move it into place,
 # after taking off a plain background and the empty space around it.
-# A picture the size of the doll's images is added straight away.
-func place_picture(layer:String, image:Image, description:String, prefix := "upload") -> void:
+# A picture the size of the doll's images is added straight away, unless it is fitted:
+# a fitted picture was drawn on the doll's picture, so it starts out where it was drawn
+# and the player only fixes what's a little off.
+func place_picture(layer:String, image:Image, description:String, prefix := "upload", fitted := false) -> void:
 	image.convert(Image.FORMAT_RGBA8)
 	if not StickerImage.has_transparent_corner(image):
 		StickerImage.remove_flat_background(image)
-	if image.get_size() == doll_size(layer):
+	if image.get_size() == doll_size(layer) and not fitted:
 		_add(layer, image, description, prefix)
 		return
 	var used = image.get_used_rect()
 	if not used.has_area():
 		toolbar.show_message("That picture is empty.")
 		return
-	start_placing(layer, image.get_region(used), description, prefix)
+	start_placing(layer, image.get_region(used), description, prefix, used if fitted else Rect2i())
 
 static func decode(bytes:PackedByteArray, extension:String) -> Image:
 	if extension.to_lower() == "svg":
@@ -214,12 +217,32 @@ func doll_size(layer:String) -> Vector2i:
 				return Vector2i(button.image.get_size())
 	return Vector2i(get_viewport_rect().size)
 
+# The doll as drawn (not reshaped or recolored) on white, the size of the doll's images,
+# with what it wears now in the given layers, such as ["01Skin", "03Hair"]
+func doll_picture(layers:Array) -> Image:
+	var doll_layers = interactivity.layers.filter(func(layer): return not interactivity.is_background(layer))
+	var size = doll_size(doll_layers[0]) if not doll_layers.is_empty() else Vector2i(get_viewport_rect().size)
+	var picture = Image.create_empty(size.x, size.y, false, Image.FORMAT_RGBA8)
+	picture.fill(Color.WHITE)
+	for layer in doll_layers:
+		var button = interactivity.tab_nodes[interactivity.layers.find(layer)].get_item_button(interactivity.outfit[layer].item)
+		if not layer in layers or not button or not button.image:
+			continue
+		var image: Image = button.image.get_image()
+		if image.is_compressed():
+			image.decompress()
+		image.convert(Image.FORMAT_RGBA8)
+		# layers are drawn centered on each other
+		picture.blend_rect(image, Rect2i(Vector2i.ZERO, image.get_size()), (size - image.get_size()) / 2)
+	return picture
+
 
 #####################################
 ############## PLACING ON THE DOLL ##
 #####################################
 
-func start_placing(layer:String, image:Image, description:String, prefix := "upload") -> void:
+# at is where the picture goes on the doll's images, if it is already known
+func start_placing(layer:String, image:Image, description:String, prefix := "upload", at := Rect2i()) -> void:
 	if placing:
 		cancel_placing()
 	target_layer = layer
@@ -239,8 +262,12 @@ func start_placing(layer:String, image:Image, description:String, prefix := "upl
 	var doll = _doll_rect()
 	var picture_size = Vector2(image.get_size())
 	var base = _base_scale()
-	preview.position = doll.get_center()
-	preview.scale = Vector2.ONE * minf(base.x, START_SIZE * minf(doll.size.x / picture_size.x, doll.size.y / picture_size.y))
+	if at.has_area():
+		preview.position = doll.position + (Vector2(at.position) + Vector2(at.size) / 2) * base
+		preview.scale = Vector2.ONE * base.x
+	else:
+		preview.position = doll.get_center()
+		preview.scale = Vector2.ONE * minf(base.x, START_SIZE * minf(doll.size.x / picture_size.x, doll.size.y / picture_size.y))
 
 	placing = true
 	ui_root.hide()

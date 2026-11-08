@@ -6,6 +6,12 @@
 #   - Stickers are added to the sticker menu and placed on the doll.
 #   - Doll items (hair, faces, clothes...) are put on the doll for the player to move
 #     into place (see picture_upload.gd), then added to that layer's menu.
+#     With "Fit to the doll", the model draws the item on a picture of the doll,
+#     so it starts out in the right place and only needs nudging.
+# "Write it for me" asks a text model on OpenRouter to turn the player's short idea into a
+# detailed description for the picture. What the writer is told first (its system prompt)
+# can be changed in the window ("Writer prompt") or in the Inspector. The writer is shown
+# a picture of the doll, so what it describes suits the character.
 # Pictures are kept in user://generated/ so they're still there next time.
 
 extends OverlayDialog
@@ -31,12 +37,26 @@ extends OverlayDialog
 @export_multiline var sticker_prompt_suffix := "A single isolated accessory or sticker for a dress-up game, centered, whole object visible, clean dark outline, no person wearing it, no text, no shadow."
 # Added to every doll item prompt; %s is the layer's name, such as "Hair"
 @export_multiline var item_prompt_suffix := "A single %s piece for a 2D paper doll dress-up game, shaped to be worn by the doll, whole item visible, clean dark outline, no person, no mannequin, no hanger, no text, no shadow."
+# Used instead of Item Prompt Suffix for the doll's body (the first doll layer): a new body is a new character
+@export_multiline var body_prompt_suffix := "A whole character for a 2D paper doll dress-up game: one figure standing straight and facing forward, arms held a little away from the body, whole body visible from head to feet, dressed only in a simple plain base layer so clothes can go on top, clean dark outline, no text, no shadow."
+# Added to doll item prompts with Fit to the doll, when a picture of the doll is sent along
+@export_multiline var fit_prompt := "The reference picture shows the doll this item is for, on a canvas the same shape as this picture. Draw the item exactly where it sits when the doll wears it: the same size and the same place on the canvas, following the doll's outline. Draw only the item. Leave out the doll and everything else in the reference picture."
+# Used instead of Fit Prompt for a new body: the picture shows the old body
+@export_multiline var fit_body_prompt := "The reference picture shows the doll's current body, on a canvas the same shape as this picture. Draw the new character in exactly the same pose, size and place on the canvas, with the same outline, so clothes made for the old body still fit. Draw only the character."
 # Added to every sticker and doll item prompt, so clothes come out flat like paper doll
 # cutouts instead of showing their inside through the neck or hem
 @export_multiline var flat_prompt := "Drawn completely flat like a paper doll cutout: straight-on front view, no perspective, no depth, no 3D. Only the outside front is shown: the inside, lining, back, inner collar and inner hem are never visible. Neck, sleeve and bottom openings are closed edges filled with the item's color, not holes."
 # Used instead of Flat Prompt for the 3D and photo styles (see DEPTH_STYLES): they keep their
 # depth, but clothes still shouldn't show their inside
 @export_multiline var depth_prompt := "Straight-on front view. Only the outside front is shown: the inside, lining, back, inner collar and inner hem are never visible. Neck, sleeve and bottom openings are closed, not holes."
+
+# The OpenRouter text model behind "Write it for me". Any model from https://openrouter.ai/models works.
+@export var writer_model := "anthropic/claude-haiku-5.5"
+# What the writer is told before the player's idea (its system prompt).
+# Players can change it in the window; Reset puts this back.
+# Shows the writer a picture of the doll (needs a writer model that accepts pictures)
+@export var writer_sees_doll := true
+@export_multiline var writer_instructions := "You write picture descriptions for an image model in a dress-up game for all ages. The player gives a short idea for a character, a piece of clothing, an accessory or a place. Turn it into one vivid paragraph of 2 to 4 sentences that says exactly how it looks: shapes, colors, materials, patterns and the small details that make it charming. For a character, describe their face, hair, skin and build, and show their personality through how they look. For clothes and accessories, describe only the item, never a person wearing it. Describe only what is drawn: no story, no names, no text in the picture. Don't mention the art style, background, camera or lighting, because the game adds those. Reply only with JSON."
 
 enum Kind { BACKGROUND, STICKER, ITEM }
 
@@ -86,10 +106,32 @@ var provider := "openrouter"
 var custom_models := {} # provider : {kind : model typed by the player}
 var custom_extras := {} # provider : {kind : extra input as JSON text}
 var busy_since := -1
+var fit_to_doll := true # draw doll items on a picture of the doll
+var writing := false
+var writer_prompt := "" # the player's own writer prompt, "" for writer_instructions
+var writer_model_id := "" # the player's own writer model, "" for writer_model
 
 func _ready() -> void:
 	super()
 	%GenerateButton.pressed.connect(generate)
+	%WriteButton.pressed.connect(write_description)
+	%WriterToggle.toggled.connect(_show_writer)
+	# TextEdit also says its text changed when the game fills it in, so only real changes are saved
+	%WriterEdit.text_changed.connect(func():
+		var text = %WriterEdit.text.strip_edges()
+		text = text if text != writer_instructions.strip_edges() else ""
+		if text != writer_prompt:
+			writer_prompt = text
+			save_settings())
+	%WriterModelEdit.text_changed.connect(func(text):
+		text = text.strip_edges()
+		writer_model_id = text if text != writer_model else ""
+		save_settings())
+	%WriterResetButton.pressed.connect(func():
+		writer_prompt = ""
+		writer_model_id = ""
+		_show_writer_settings()
+		save_settings())
 	%CloseButton.pressed.connect(close)
 	%BackgroundKind.pressed.connect(func(): set_kind(Kind.BACKGROUND))
 	%StickerKind.pressed.connect(func(): set_kind(Kind.STICKER))
@@ -108,6 +150,10 @@ func _ready() -> void:
 	%RememberKey.toggled.connect(func(_on): save_settings())
 	%ModelOption.item_selected.connect(func(index):
 		preferred_models[kind] = models[index].id
+		_update_fit()
+		save_settings())
+	%FitCheck.toggled.connect(func(on):
+		fit_to_doll = on
 		save_settings())
 	# the AI buttons in the menus
 	SignalBus.dressup_item_signal.connect(func(button, operation):
@@ -120,6 +166,7 @@ func _ready() -> void:
 		else:
 			open_for(Kind.ITEM, button.category))
 	_load_settings()
+	_show_writer_settings()
 	set_kind(Kind.BACKGROUND)
 	set_provider(provider)
 
@@ -200,7 +247,7 @@ static func layer_name(layer:String) -> String:
 #####################################
 
 func generate() -> void:
-	if busy_since >= 0:
+	if busy_since >= 0 or writing:
 		return
 	var prompt = %PromptEdit.text.strip_edges()
 	if prompt == "":
@@ -233,6 +280,7 @@ func generate() -> void:
 	var full_prompt: String
 	var size: Vector2
 	var extra := {}
+	var fit := {} # the doll's picture sent with the prompt, see _fit_reference()
 	if making == Kind.BACKGROUND:
 		full_prompt = "%s. %s %s" % [prompt.trim_suffix("."), style, background_prompt_suffix]
 		size = Vector2(ProjectSettings.get_setting("display/window/size/viewport_width"),
@@ -247,13 +295,23 @@ func generate() -> void:
 				extra.output_format = "png"
 		if OpenRouterClient.supports(model, "quality", "medium"):
 			extra.quality = "medium"
-		var suffix = sticker_prompt_suffix if making == Kind.STICKER else item_prompt_suffix % layer_name(layer).to_lower()
-		var shape = depth_prompt if style_name in DEPTH_STYLES else flat_prompt
+		var body = making == Kind.ITEM and interactivity.is_required(layer)
+		var suffix = sticker_prompt_suffix
+		if making == Kind.ITEM:
+			suffix = body_prompt_suffix if body else item_prompt_suffix % layer_name(layer).to_lower()
+		# the flat and depth prompts are about clothes, so a body doesn't get them
+		var shape = "" if body else (depth_prompt if style_name in DEPTH_STYLES else flat_prompt)
 		full_prompt = "%s. %s %s %s %s" % [prompt.trim_suffix("."), style, shape, suffix,
 			"Transparent background." if transparent else "On a plain flat pure white background."]
+		if making == Kind.ITEM and using == "openrouter" and fit_to_doll and can_fit(model):
+			fit = _fit_reference(layer, model)
+			extra.input_references = [{"type": "image_url", "image_url": {"url": "data:image/png;base64," +
+				Marshalls.raw_to_base64(fit.image.save_png_to_buffer())}}]
+			full_prompt += " " + (fit_body_prompt if body else fit_prompt)
 
 	busy_since = Time.get_ticks_msec()
 	%GenerateButton.disabled = true
+	%WriteButton.disabled = true
 	var result: Dictionary
 	if using == "openrouter":
 		client.api_key = key
@@ -264,6 +322,7 @@ func generate() -> void:
 			making != Kind.BACKGROUND)
 	busy_since = -1
 	%GenerateButton.disabled = false
+	%WriteButton.disabled = false
 
 	if not result.ok:
 		_set_status(result.error)
@@ -280,10 +339,14 @@ func generate() -> void:
 		interactivity.add_runtime_item(background_layer(), ImageTexture.create_from_image(image), path)
 		_set_status("Done! It's in the backgrounds menu." + cost_text)
 	elif making == Kind.ITEM:
+		var image: Image = result.image
+		if not fit.is_empty():
+			# back to the doll's own canvas, so the item sits where it was drawn
+			image = fit_to_size(image, fit.image.get_size()).get_region(fit.doll)
 		# the player moves it into place; it's saved when they press Done
 		_set_status("Done! It was put on the doll to move into place." + cost_text)
 		close()
-		picture_upload.place_picture(layer, result.image, prompt, "ai")
+		picture_upload.place_picture(layer, image, prompt, "ai", not fit.is_empty())
 	else:
 		var image = StickerImage.prepare(result.image)
 		var path = GeneratedItems.save(interactivity.STICKERS, image, prompt)
@@ -301,6 +364,27 @@ static func fit_to_size(image: Image, size: Vector2i) -> Image:
 	image.resize(scaled.x, scaled.y, Image.INTERPOLATE_LANCZOS)
 	return image.get_region(Rect2i((scaled - size) / 2, size))
 
+# Fit to the doll needs a model that can look at a picture while it draws
+static func can_fit(model: Dictionary) -> bool:
+	return OpenRouterClient.supports(model, "input_references")
+
+# The doll's picture for Fit to the doll: the doll without the layer the item is for
+# (or only the old body, for a new body), with white added around it so it has the
+# shape the model draws in. Returns {"image": Image, "doll": Rect2i, where the doll is in it}
+func _fit_reference(layer: String, model: Dictionary) -> Dictionary:
+	var layers = [layer] if interactivity.is_required(layer) else doll_layers().filter(func(other): return other != layer)
+	var doll: Image = picture_upload.doll_picture(layers)
+	var size = Vector2(doll.get_size())
+	# the same ratio generate_image() asks for, since it is given the doll's size
+	var ratio = OpenRouterClient.closest_aspect_ratio(model.get("aspect_ratios", []), size.x / size.y)
+	var wanted = size.x / size.y if ratio == "" else float(ratio.get_slice(":", 0)) / float(ratio.get_slice(":", 1))
+	var canvas_size = Vector2i(size.max(Vector2(size.y * wanted, size.x / wanted)).round())
+	var canvas = Image.create_empty(canvas_size.x, canvas_size.y, false, Image.FORMAT_RGBA8)
+	canvas.fill(Color.WHITE)
+	var doll_rect = Rect2i((canvas_size - doll.get_size()) / 2, doll.get_size())
+	canvas.blit_rect(doll, Rect2i(Vector2i.ZERO, doll.get_size()), doll_rect.position)
+	return {"image": canvas, "doll": doll_rect}
+
 # A model can only make a see-through sticker if it supports transparent
 # backgrounds AND sends back a format that keeps transparency (not jpeg)
 static func can_make_transparent(model: Dictionary) -> bool:
@@ -308,6 +392,85 @@ static func can_make_transparent(model: Dictionary) -> bool:
 		return false
 	var formats = model.params.get("output_format", {}).get("values", ["png"])
 	return "png" in formats or "webp" in formats
+
+
+#####################################
+############## WRITING ##############
+#####################################
+
+# Turns the player's idea into a detailed description with a text model on OpenRouter.
+# The description replaces the idea in the prompt box (Ctrl+Z brings the idea back).
+func write_description() -> void:
+	if writing or busy_since >= 0:
+		return
+	client.api_key = AIKey.current_key("openrouter")
+	if client.api_key == "" and client.base_url.contains("openrouter.ai"):
+		_show_writer(false)
+		_set_status("Paste your OpenRouter API key below first." if provider == "openrouter" else
+			"The writer uses OpenRouter: pick OpenRouter as the Provider below and paste your key first.")
+		return
+	writing = true
+	%WriteButton.disabled = true
+	_set_status("Writing a description...")
+	var result = await client.ask_json(writer_model_id if writer_model_id != "" else writer_model,
+		writer_prompt if writer_prompt != "" else writer_instructions, _writer_question(),
+		picture_upload.doll_picture(_writer_layers()) if writer_sees_doll else null)
+	writing = false
+	%WriteButton.disabled = false
+	if not result.ok:
+		_set_status(result.error)
+		return
+	var description = str(result.data.get("description", "")).strip_edges()
+	if description == "":
+		_set_status("The writer didn't come up with anything. Try again?")
+		return
+	%PromptEdit.select_all()
+	%PromptEdit.insert_text_at_caret(description)
+	var cost = result.get("cost")
+	_set_status("Change anything you like, then press Generate." + (" Cost: $%.4f" % cost if cost is float else ""))
+
+func _writer_question() -> String:
+	var idea = %PromptEdit.text.strip_edges()
+	var making: String
+	match kind:
+		Kind.BACKGROUND:
+			making = "a background: a place shown behind the doll, with no characters in it"
+		Kind.STICKER:
+			making = "a sticker: one accessory or object that is placed on the doll"
+		Kind.ITEM:
+			# the first doll layer is the doll's body, so a new one is a new character
+			if interactivity.is_required(item_layer):
+				making = "a new character: the doll's whole body for a 2D paper doll, standing straight and facing forward"
+			else:
+				making = "a new %s piece for a 2D paper doll" % layer_name(item_layer).to_lower()
+	var lines := [
+		"Making: " + making,
+		"Style: " + %StyleOption.get_item_text(%StyleOption.selected),
+		"Idea: " + (idea if idea != "" else "(none, surprise me with something fun)"),
+		"",
+	]
+	if writer_sees_doll:
+		var without = " (without its %s)" % layer_name(item_layer).to_lower() if not item_layer in _writer_layers() else ""
+		lines.append("The picture shows the doll as it looks now%s. Make what you describe suit this character." % without)
+	lines.append("Reply with JSON like: {\"description\": \"<the description>\"}")
+	return "\n".join(lines)
+
+# The doll's layers in the writer's picture: all of them, except the layer a new item replaces
+func _writer_layers() -> Array:
+	if kind == Kind.ITEM and not interactivity.is_required(item_layer):
+		return doll_layers().filter(func(layer): return layer != item_layer)
+	return doll_layers()
+
+# Shows the writer's prompt and model in place of the AI settings, or the other way around
+func _show_writer(on: bool) -> void:
+	%WriterToggle.set_pressed_no_signal(on)
+	%WriterBox.visible = on
+	%SettingsBox.visible = not on
+
+func _show_writer_settings() -> void:
+	%WriterEdit.text = writer_prompt if writer_prompt != "" else writer_instructions
+	%WriterModelEdit.placeholder_text = writer_model
+	%WriterModelEdit.text = writer_model_id if writer_model_id != "" else writer_model
 
 
 #####################################
@@ -334,6 +497,7 @@ func _show_models() -> void:
 	if provider != "openrouter":
 		%ModelEdit.text = custom_models.get(provider, {}).get(kind, default_custom_models.get(provider, ""))
 		%ExtraEdit.text = custom_extras.get(provider, {}).get(kind, "")
+		_update_fit()
 		return
 	for id in [default_background_model, default_sticker_model, default_item_model]:
 		if not models.any(func(model): return model.id == id):
@@ -347,6 +511,15 @@ func _show_models() -> void:
 		%ModelOption.add_item(label)
 		if model.id == wanted:
 			%ModelOption.select(%ModelOption.item_count - 1)
+	_update_fit()
+
+# Fit to the doll can only be ticked when the model can look at the doll's picture
+func _update_fit() -> void:
+	var possible = provider == "openrouter" and not models.is_empty() and can_fit(_selected_model())
+	%FitCheck.disabled = not possible
+	%FitCheck.set_pressed_no_signal(fit_to_doll and possible)
+	%FitCheck.tooltip_text = "The model draws the item on a picture of the doll, so it starts out in the right place." \
+		if possible else "Needs an OpenRouter model that can look at a picture while it draws (most can)."
 
 func set_provider(new_provider: String) -> void:
 	provider = new_provider if new_provider in PROVIDERS else "openrouter"
@@ -383,6 +556,9 @@ func _load_settings() -> void:
 	preferred_models[Kind.STICKER] = config.get_value("openrouter", "sticker_model", default_sticker_model)
 	preferred_models[Kind.ITEM] = config.get_value("openrouter", "item_model", default_item_model)
 	provider = config.get_value("ai_create", "provider", "openrouter")
+	writer_prompt = config.get_value("ai_create", "writer_prompt", "")
+	fit_to_doll = config.get_value("ai_create", "fit_to_doll", true)
+	writer_model_id = config.get_value("ai_create", "writer_model", "")
 	for id in PROVIDERS:
 		if config.has_section_key(id, "models"):
 			custom_models[id] = config.get_value(id, "models")
@@ -394,6 +570,9 @@ func save_settings() -> void:
 	var config := ConfigFile.new()
 	config.load(SETTINGS_FILE) # keeps the settings saved by other windows
 	config.set_value("ai_create", "provider", provider)
+	config.set_value("ai_create", "writer_prompt", writer_prompt)
+	config.set_value("ai_create", "fit_to_doll", fit_to_doll)
+	config.set_value("ai_create", "writer_model", writer_model_id)
 	for id in custom_models:
 		config.set_value(id, "models", custom_models[id])
 	for id in custom_extras:

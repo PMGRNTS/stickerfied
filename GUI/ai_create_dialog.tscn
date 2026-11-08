@@ -101,10 +101,38 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="PromptHint" type="Label" parent="Center/Panel/Margin/Content"]
+[node name="FitCheck" type="CheckBox" parent="Center/Panel/Margin/Content/LayerRow"]
 unique_name_in_owner = true
 layout_mode = 2
+button_pressed = true
+text = "Fit to the doll"
+
+[node name="PromptHintRow" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="PromptHint" type="Label" parent="Center/Panel/Margin/Content/PromptHintRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
 text = "Describe a place:"
+
+[node name="WriteButton" type="Button" parent="Center/Panel/Margin/Content/PromptHintRow"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+tooltip_text = "A text model turns your idea into a detailed description for the picture. Leave the box empty for a surprise."
+text = "Write it for me"
+
+[node name="WriterToggle" type="Button" parent="Center/Panel/Margin/Content/PromptHintRow"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+tooltip_text = "Change what the writer is told before your idea (its system prompt), and which model writes."
+text = "Writer prompt"
 
 [node name="PromptEdit" type="TextEdit" parent="Center/Panel/Margin/Content"]
 unique_name_in_owner = true
@@ -112,6 +140,46 @@ layout_mode = 2
 custom_minimum_size = Vector2(0, 64)
 placeholder_text = "a cozy bedroom with fairy lights"
 wrap_mode = 1
+
+[node name="WriterBox" type="VBoxContainer" parent="Center/Panel/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="WriterHint" type="Label" parent="Center/Panel/Margin/Content/WriterBox"]
+layout_mode = 2
+text = "What the writer is told before your idea (its system prompt):"
+
+[node name="WriterEdit" type="TextEdit" parent="Center/Panel/Margin/Content/WriterBox"]
+unique_name_in_owner = true
+layout_mode = 2
+custom_minimum_size = Vector2(0, 110)
+wrap_mode = 1
+
+[node name="WriterModelRow" type="HBoxContainer" parent="Center/Panel/Margin/Content/WriterBox"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="WriterModelLabel" type="Label" parent="Center/Panel/Margin/Content/WriterBox/WriterModelRow"]
+layout_mode = 2
+custom_minimum_size = Vector2(60, 0)
+text = "Writer"
+
+[node name="WriterModelEdit" type="LineEdit" parent="Center/Panel/Margin/Content/WriterBox/WriterModelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "The OpenRouter text model that writes the description, such as anthropic/claude-haiku-5.5 (see https://openrouter.ai/models)."
+clear_button_enabled = true
+
+[node name="WriterResetButton" type="Button" parent="Center/Panel/Margin/Content/WriterBox/WriterModelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+tooltip_text = "Puts back the game's own writer prompt and model."
+text = "Reset"
 
 [node name="StyleRow" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
 layout_mode = 2
@@ -145,39 +213,44 @@ custom_minimum_size = Vector2(280, 0)
 size_flags_horizontal = 3
 autowrap_mode = 3
 
-[node name="Separator" type="HSeparator" parent="Center/Panel/Margin/Content"]
+[node name="SettingsBox" type="VBoxContainer" parent="Center/Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="Separator" type="HSeparator" parent="Center/Panel/Margin/Content/SettingsBox"]
 layout_mode = 2
 
-[node name="SettingsTitle" type="Label" parent="Center/Panel/Margin/Content"]
+[node name="SettingsTitle" type="Label" parent="Center/Panel/Margin/Content/SettingsBox"]
 layout_mode = 2
 theme_override_font_sizes/font_size = 16
 text = "AI settings"
 
-[node name="ProviderRow" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+[node name="ProviderRow" type="HBoxContainer" parent="Center/Panel/Margin/Content/SettingsBox"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ProviderLabel" type="Label" parent="Center/Panel/Margin/Content/ProviderRow"]
+[node name="ProviderLabel" type="Label" parent="Center/Panel/Margin/Content/SettingsBox/ProviderRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(60, 0)
 text = "Provider"
 
-[node name="ProviderOption" type="OptionButton" parent="Center/Panel/Margin/Content/ProviderRow"]
+[node name="ProviderOption" type="OptionButton" parent="Center/Panel/Margin/Content/SettingsBox/ProviderRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 tooltip_text = "OpenRouter has a list of models to pick from. fal, Replicate and RunPod run any model you name, including ones you trained yourself."
 
-[node name="KeyRow" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+[node name="KeyRow" type="HBoxContainer" parent="Center/Panel/Margin/Content/SettingsBox"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="KeyLabel" type="Label" parent="Center/Panel/Margin/Content/KeyRow"]
+[node name="KeyLabel" type="Label" parent="Center/Panel/Margin/Content/SettingsBox/KeyRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(60, 0)
 text = "API key"
 
-[node name="KeyEdit" type="LineEdit" parent="Center/Panel/Margin/Content/KeyRow"]
+[node name="KeyEdit" type="LineEdit" parent="Center/Panel/Margin/Content/SettingsBox/KeyRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -185,48 +258,48 @@ placeholder_text = "sk-or-..."
 secret = true
 clear_button_enabled = true
 
-[node name="GetKeyLink" type="LinkButton" parent="Center/Panel/Margin/Content/KeyRow"]
+[node name="GetKeyLink" type="LinkButton" parent="Center/Panel/Margin/Content/SettingsBox/KeyRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_vertical = 4
 text = "Get a key"
 uri = "https://openrouter.ai/keys"
 
-[node name="ModelRow" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+[node name="ModelRow" type="HBoxContainer" parent="Center/Panel/Margin/Content/SettingsBox"]
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ModelLabel" type="Label" parent="Center/Panel/Margin/Content/ModelRow"]
+[node name="ModelLabel" type="Label" parent="Center/Panel/Margin/Content/SettingsBox/ModelRow"]
 unique_name_in_owner = true
 layout_mode = 2
 custom_minimum_size = Vector2(60, 0)
 text = "Model"
 
-[node name="ModelOption" type="OptionButton" parent="Center/Panel/Margin/Content/ModelRow"]
+[node name="ModelOption" type="OptionButton" parent="Center/Panel/Margin/Content/SettingsBox/ModelRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 fit_to_longest_item = false
 
-[node name="ModelEdit" type="LineEdit" parent="Center/Panel/Margin/Content/ModelRow"]
+[node name="ModelEdit" type="LineEdit" parent="Center/Panel/Margin/Content/SettingsBox/ModelRow"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 size_flags_horizontal = 3
 clear_button_enabled = true
 
-[node name="ExtraRow" type="HBoxContainer" parent="Center/Panel/Margin/Content"]
+[node name="ExtraRow" type="HBoxContainer" parent="Center/Panel/Margin/Content/SettingsBox"]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="ExtraLabel" type="Label" parent="Center/Panel/Margin/Content/ExtraRow"]
+[node name="ExtraLabel" type="Label" parent="Center/Panel/Margin/Content/SettingsBox/ExtraRow"]
 layout_mode = 2
 custom_minimum_size = Vector2(60, 0)
 text = "Extra"
 
-[node name="ExtraEdit" type="LineEdit" parent="Center/Panel/Margin/Content/ExtraRow"]
+[node name="ExtraEdit" type="LineEdit" parent="Center/Panel/Margin/Content/SettingsBox/ExtraRow"]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
@@ -234,7 +307,7 @@ tooltip_text = "Anything else the model needs, written as JSON. It's added to wh
 placeholder_text = "optional, like {\"lora_scale\": 0.8}"
 clear_button_enabled = true
 
-[node name="RememberKey" type="CheckBox" parent="Center/Panel/Margin/Content"]
+[node name="RememberKey" type="CheckBox" parent="Center/Panel/Margin/Content/SettingsBox"]
 unique_name_in_owner = true
 layout_mode = 2
 button_pressed = true
