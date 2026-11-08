@@ -15,6 +15,8 @@ extends Control
 @export var sticker_stage: Node2D
 # Zooms in on the doll (see stage_zoom.gd); photos are taken zoomed out
 @export var stage_zoom: Node
+# Strikes a pose for photos (see doll_mood.gd)
+@export var doll_mood: Node
 
 const THUMBNAIL_SIZE := Vector2i(180, 120)
 const SOUND_ON_ICON = preload("res://GUI/sound_on.svg")
@@ -108,6 +110,9 @@ func save_outfit() -> void:
 	show_message("Outfit saved! Find it under Outfits.")
 
 func take_photo() -> void:
+	if doll_mood:
+		sticker_stage.deselect()
+		await doll_mood.pose_for_photo()
 	var image: Image = await capture_scene()
 	Sfx.play("shutter")
 	if OS.has_feature("web"):

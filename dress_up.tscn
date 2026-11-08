@@ -21,6 +21,7 @@
 [ext_resource type="Script" path="res://script/body_fitter.gd" id="18_fitter"]
 [ext_resource type="Script" path="res://script/body_sculptor.gd" id="19_sculptor"]
 [ext_resource type="Script" path="res://script/stage_zoom.gd" id="20_zoom"]
+[ext_resource type="Script" path="res://script/doll_mood.gd" id="21_mood"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -262,6 +263,58 @@ anchor = 0
 soft_edge = 0.5
 landmark = 5
 
+[node name="LookAcrossLeft" type="Node2D" parent="BodyShaper"]
+position = Vector2(217, 70)
+script = ExtResource("17_control")
+slider = "Look across"
+group = ""
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0, 0)
+move = Vector2(7, 0)
+anchor = 0
+soft_edge = 0.6
+landmark = 4
+
+[node name="LookAcrossRight" type="Node2D" parent="BodyShaper"]
+position = Vector2(260, 70)
+script = ExtResource("17_control")
+slider = "Look across"
+group = ""
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0, 0)
+move = Vector2(7, 0)
+anchor = 0
+soft_edge = 0.6
+landmark = 5
+
+[node name="LookUpLeft" type="Node2D" parent="BodyShaper"]
+position = Vector2(217, 70)
+script = ExtResource("17_control")
+slider = "Look up"
+group = ""
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0, 0)
+move = Vector2(0, -4)
+anchor = 0
+soft_edge = 0.6
+landmark = 4
+
+[node name="LookUpRight" type="Node2D" parent="BodyShaper"]
+position = Vector2(260, 70)
+script = ExtResource("17_control")
+slider = "Look up"
+group = ""
+shape = 0
+reach = Vector2(20, 11)
+stretch = Vector2(0, 0)
+move = Vector2(0, -4)
+anchor = 0
+soft_edge = 0.6
+landmark = 5
+
 [node name="MouthSize" type="Node2D" parent="BodyShaper"]
 position = Vector2(245, 98)
 script = ExtResource("17_control")
@@ -334,6 +387,19 @@ bend = 22.0
 soft_edge = 0.5
 landmark = 6
 
+[node name="Smirk" type="Node2D" parent="BodyShaper"]
+position = Vector2(245, 98)
+script = ExtResource("17_control")
+slider = "Smirk"
+group = "Face"
+shape = 0
+reach = Vector2(60, 30)
+stretch = Vector2(0, 0)
+bend = 20.0
+bend_side = 1.0
+soft_edge = 0.5
+landmark = 6
+
 [node name="Breathing" type="Node2D" parent="BodyShaper"]
 position = Vector2(286, 226)
 script = ExtResource("17_control")
@@ -395,7 +461,7 @@ body_shaper = NodePath("../BodyShaper")
 ui_root = NodePath("../Menus/DressupMenu")
 sticker_stage = NodePath("../StickerStage")
 
-[node name="Toolbar" parent="Menus/DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage", "stage_zoom") instance=ExtResource("9_toolbar")]
+[node name="Toolbar" parent="Menus/DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage", "stage_zoom", "doll_mood") instance=ExtResource("9_toolbar")]
 layout_mode = 1
 interactivity = NodePath("../../../Interactivity")
 ui_root = NodePath("..")
@@ -405,6 +471,7 @@ ai_create_dialog = NodePath("../../../Popups/AICreateDialog")
 ai_stylist_dialog = NodePath("../../../Popups/AIStylistDialog")
 sticker_stage = NodePath("../../../StickerStage")
 stage_zoom = NodePath("../../../StageZoom")
+doll_mood = NodePath("../../../DollMood")
 
 [node name="Popups" type="CanvasLayer" parent="."]
 
@@ -435,3 +502,12 @@ toolbar = NodePath("../Menus/DressupMenu/Toolbar")
 script = ExtResource("20_zoom")
 sticker_stage = NodePath("../StickerStage")
 focus_point = NodePath("../SpritePlaceholder")
+
+[node name="DollMood" type="Node" parent="." node_paths=PackedStringArray("body_shaper", "interactivity", "sticker_stage", "body_fitter", "body_sculptor", "bubble_parent")]
+script = ExtResource("21_mood")
+body_shaper = NodePath("../BodyShaper")
+interactivity = NodePath("../Interactivity")
+sticker_stage = NodePath("../StickerStage")
+body_fitter = NodePath("../BodyFitter")
+body_sculptor = NodePath("../BodySculptor")
+bubble_parent = NodePath("../Menus/DressupMenu")

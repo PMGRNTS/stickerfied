@@ -18,6 +18,12 @@
 # with the hips under it), lag behind and swing back.
 # Stickers bend with the doll's shape and breathe with it, but don't blink or swing.
 #
+# The doll also pulls faces and strikes poses (see doll_mood.gd): show_expression() adds
+# slider values on top of the player's for a while, such as {"Smile": -0.6} for a pout.
+# Moving every point through the controls each frame is too slow, so the new pose is
+# worked out a little each frame, and then the doll slides from the old pose to it.
+# Stickers move along with the pose (see sticker_stage.gd). Poses are never saved in outfits.
+#
 # Players can move the controls to fit their own doll (see body_fitter.gd), or have the
 # game put the controls with a Landmark on the doll's parts (see body_finder.gd).
 # Each body picture (the first layer after the backgrounds) keeps its own fit,
@@ -27,6 +33,8 @@ extends Node2D
 
 # Sent whenever the doll's shape changes, so the stickers can follow it
 signal shape_changed
+# Sent when the doll starts moving to a new pose (see show_expression)
+signal expression_started
 
 const BodyControl = preload("res://script/body_control.gd")
 const BodySculpt = preload("res://script/body_sculpt.gd")
@@ -42,6 +50,10 @@ const SMALL_AREA_POINTS := 4
 const SWING_STIFFNESS := 90.0
 const SWING_DAMPING := 7.0
 const SWING_LIMIT := 30.0
+# How long each frame may spend working out a new pose, in microseconds
+const POSE_BUDGET := 4000
+# How far (in pixels) past their controls' ovals points are checked for blinking and breathing
+const NEAR_MARGIN := 24.0
 
 # How many squares the grid has across and down. More squares bend the doll more smoothly,
 # but take longer to move. Small areas (such as eyes) get extra points of their own.
@@ -64,7 +76,7 @@ var image_size := Vector2.ONE # the size of the doll's images
 var middle := Vector2.ZERO # the middle of the doll's images, in a layer's coordinates
 var rest := PackedVector2Array() # the grid points before any reshaping, in a layer's coordinates
 var uvs := PackedVector2Array() # where each grid point is in the doll's images (0 to 1)
-var shaped_points := PackedVector2Array() # the grid points on the reshaped doll, standing still
+var shaped_points := PackedVector2Array() # the grid points on the reshaped doll in its pose now, standing still
 var moving := PackedInt32Array() # the grid points that blinking and breathing move
 var values := {} # slider name -> -1..1, what the doll shows now, and the sculpt as "_sculpt"
 var sculpt: BodySculpt # the sculpt brush's pushes shown now
@@ -79,14 +91,37 @@ var can_breathe := false # true when a control has the breathe slider
 var breath := 0.0 # how far the doll has breathed in, 0 to 1
 var breath_clock := 0.0
 
+var expression := {} # slider name -> -1..1 added to the player's sliders: the pose shown, or being moved to
+var expression_from := {} # the pose being moved from (the same as expression when standing still)
+var pose_from := PackedVector2Array() # shaped_points in that pose
+var pose_to := PackedVector2Array() # shaped_points in the pose being moved to
+var moving_after := PackedInt32Array() # the points blinking and breathing move in that pose
+var pose_clock := 0.0 # seconds into the move
+var pose_time := 0.0 # how long the move takes, or 0 when the doll isn't moving to a pose
+var pose_snappy := false # snappy moves overshoot a little and settle, like a flick
+var pose_weight := 1.0 # how far the doll has moved to the new pose, eased (a little past 1 when snappy)
+
+# The pose being worked out a little each frame (see show_expression), or null
+var next_face = null
+var next_seconds := 0.0
+var next_snappy := false
+var next_active := [] # the controls, as _active() gives them, in that pose
+var next_closed := [] # the same with the eyes closed and breathed in, to find the moving points
+var next_points := PackedVector2Array() # the grid points in that pose, worked out so far
+var next_checked := 0 # how many grid points have been checked for blinking and breathing
+var next_moving := PackedInt32Array()
+var next_hanging := [] # for each swing, where its points hang in that pose
+
 # For each layer that swings: {"layer", "points" (grid point indexes), "looseness" (0 to 1 each),
 # "anchors" (where each point hangs from, on the screen), "targets" (where each point hangs
-# now), "last" (targets shown last), "offsets" (how far each lags behind), "speeds", "settled"}
+# now), "last" (targets shown last), "offsets" (how far each lags behind), "speeds", "settled",
+# and while moving to a pose "from" and "to" (the targets in the poses moved from and to)}
 var swings := []
 
 var defaults := {} # control name -> [position, reach] as placed in the scene
 var fits := {} # body picture -> {control name: {"x", "y", "reach_x", "reach_y"}} (see save_fit)
 var body_item := "" # the body picture worn now, whose fit the controls show
+var pictures := {} # layer pictures (Texture2D -> Image), looked at by is_on_doll()
 
 # Builds the grid over the doll's images. placeholder is the SpritePlaceholder
 # that marks where the doll is, and has one of its images.
@@ -163,6 +198,40 @@ func hold_neutral(on:bool) -> void:
 	_stop_swinging()
 	_update()
 
+# Moves the doll to a pose over seconds: face is slider values added to the player's,
+# such as {"Smile": -0.6, "Cheeks": 0.4}, or {} for none. Snappy moves overshoot a little
+# and settle, the others ease in and out. It starts after a few frames, once worked out.
+func show_expression(face:Dictionary, seconds := 0.3, snappy := false) -> void:
+	if neutral or rest.is_empty():
+		expression = face.duplicate()
+		return # shown when the doll is let go (see hold_neutral)
+	if next_face == null and pose_time <= 0.0 and face == expression:
+		return
+	next_face = face.duplicate()
+	next_seconds = seconds
+	next_snappy = snappy
+	next_active = _active(0.0, 0.0, next_face)
+	next_closed = _active(1.0, 1.0, next_face)
+	next_points = PackedVector2Array()
+	next_checked = 0
+	next_moving = PackedInt32Array()
+	next_hanging = []
+
+# True while a pose is being worked out or moved to
+func is_posing() -> bool:
+	return next_face != null or pose_time > 0.0
+
+# How the pose face moves a small thing at point (on the doll as drawn): from where it is
+# on the reshaped doll to where it is in that pose. Stickers move along with poses this way.
+func posed(point:Vector2, face:Dictionary) -> Transform2D:
+	if face.is_empty() or neutral:
+		return Transform2D.IDENTITY
+	var plain = _pose(point, _active())
+	var with_face = _pose(point, _active(0.0, 0.0, face))
+	var before = Transform2D(plain.angle, Vector2.ONE * plain.scale, 0.0, plain.position)
+	var after = Transform2D(with_face.angle, Vector2.ONE * with_face.scale, 0.0, with_face.position)
+	return after * before.affine_inverse()
+
 # Where a point on the screen moves to on the reshaped doll
 func shaped(point:Vector2) -> Vector2:
 	return _shaped(point, _active())
@@ -170,9 +239,11 @@ func shaped(point:Vector2) -> Vector2:
 # How the doll's shape moves a point: where it goes ("position"),
 # and how much the doll turns ("angle", in radians) and grows ("scale") there.
 # Stickers use this for their frame and handles, which move, turn and grow with the part
-# of the doll they are on. Blinking and breathing are left out, so the handles hold still.
+# of the doll they are on. Blinking, breathing and poses are left out, so the handles hold still.
 func pose_at(point:Vector2) -> Dictionary:
-	var active = _active()
+	return _pose(point, _active())
+
+func _pose(point:Vector2, active:Array) -> Dictionary:
 	if active.is_empty():
 		return {"position": point, "angle": 0.0, "scale": 1.0}
 	var position = _shaped(point, active)
@@ -193,6 +264,29 @@ func bent(points:PackedVector2Array, inhaled := 0.0) -> PackedVector2Array:
 	for k in len(points):
 		moved[k] = _shaped(points[k], active)
 	return moved
+
+# Whether point (on the screen) is on the doll: on a part of one of its layers' pictures
+# that isn't see-through. The pose is left out, which is close enough for a click.
+func is_on_doll(point:Vector2) -> bool:
+	if rest.is_empty():
+		return false
+	var uv = (to_screen.affine_inverse() * unshaped(point) - (middle - image_size / 2)) / image_size
+	if uv.x < 0.0 or uv.y < 0.0 or uv.x >= 1.0 or uv.y >= 1.0:
+		return false
+	for layer in layers:
+		if not layer.visible or layer.texture == null:
+			continue
+		if not pictures.has(layer.texture):
+			if len(pictures) > 8:
+				pictures.clear() # only keep the pictures worn lately
+			var image = layer.texture.get_image()
+			if image and image.is_compressed():
+				image.decompress()
+			pictures[layer.texture] = image
+		var picture: Image = pictures[layer.texture]
+		if picture and picture.get_pixelv(Vector2i(uv * Vector2(picture.get_size()))).a > 0.3:
+			return true
+	return false
 
 # The point on the doll as drawn that the shape moves to point (the opposite of shaped())
 func unshaped(point:Vector2) -> Vector2:
@@ -265,6 +359,26 @@ func _place_controls() -> void:
 		if moved is Dictionary:
 			control.global_position = to_screen * Vector2(float(moved.get("x", 0)), float(moved.get("y", 0)))
 			control.reach = Vector2(float(moved.get("reach_x", 1)), float(moved.get("reach_y", 1))).max(Vector2.ONE)
+		elif fit is Dictionary:
+			_place_like_neighbor(control, fit)
+
+# A control the fit doesn't have (such as one added to the game after the player fitted
+# their doll) moves and grows along with one on the same landmark that the fit has,
+# preferably of the same shape
+func _place_like_neighbor(control:Node2D, fit:Dictionary) -> void:
+	if control.landmark == BodyControl.Landmark.NONE:
+		return
+	var neighbors = controls().filter(func(other): return other != control \
+		and other.landmark == control.landmark and fit.get(other.name) is Dictionary)
+	if neighbors.is_empty():
+		return
+	neighbors.sort_custom(func(a, b): return a.shape == control.shape and b.shape != control.shape)
+	var moved = fit[neighbors[0].name]
+	var placed = default_of(neighbors[0])
+	var grown = Vector2(float(moved.get("reach_x", 1)), float(moved.get("reach_y", 1))).max(Vector2.ONE) / placed[1]
+	var spot = to_screen * Vector2(float(moved.get("x", 0)), float(moved.get("y", 0)))
+	control.global_position = spot + (control.global_position - placed[0]) * grown
+	control.reach = (control.reach * grown).max(Vector2.ONE)
 
 # Puts the controls that have a landmark on that part of the body picture worn now
 # (see body_finder.gd): where it usually is on a doll standing straight and facing forward,
@@ -355,12 +469,14 @@ func _build_grid() -> void:
 # The controls whose slider isn't in the middle, in the order they are applied:
 # [control, value, where its middle is after the controls before it moved it].
 # closed is how far blinking closes the eyes (0 leaves them as the slider says),
-# and inhaled how far the doll has breathed in.
-func _active(closed := 0.0, inhaled := 0.0) -> Array:
+# inhaled how far the doll has breathed in, and face a pose added to the sliders.
+func _active(closed := 0.0, inhaled := 0.0, face := {}) -> Array:
 	var active := []
 	if neutral:
 		return active
 	var shown = values.duplicate()
+	for slider in face:
+		shown[slider] = float(shown.get(slider, 0.0)) + face[slider]
 	if can_blink and closed > 0.0:
 		shown[blink_slider] = lerpf(clampf(float(shown.get(blink_slider, 0.0)), -1.0, 1.0), 1.0, closed)
 	if can_breathe:
@@ -385,11 +501,17 @@ func _shaped(point:Vector2, active:Array) -> Vector2:
 		moved = entry[0].shaped(moved, entry[1], entry[2])
 	return moved
 
-# Moves the grid's points to the doll's shape
+# Moves the grid's points to the doll's shape, in its pose straight away
 func _update() -> void:
 	if rest.is_empty():
 		return
-	var active = _active()
+	if next_face != null:
+		expression = next_face
+		next_face = null
+	expression_from = expression
+	pose_time = 0.0
+	pose_weight = 1.0
+	var active = _active(0.0, 0.0, expression)
 	shaped_points = rest
 	if not active.is_empty():
 		var from_screen = to_screen.affine_inverse()
@@ -397,28 +519,34 @@ func _update() -> void:
 		shaped_points.resize(len(rest))
 		for i in len(rest):
 			shaped_points[i] = from_screen * _shaped(to_screen * rest[i], active)
-	_hang(active)
+	pose_from = shaped_points
+	pose_to = shaped_points
+	for swing in swings:
+		swing.targets = _hanging(swing, shaped_points, active)
 	_find_moving()
 	_show()
 	shape_changed.emit()
 
-# Where swinging points hang: moved along with the point they hang from, as loosely as they hang
-func _hang(active:Array) -> void:
+# Where a swing's points hang, with the doll's points at points: moved along with the point
+# they hang from, as loosely as they hang. Many points hang from the same anchor.
+func _hanging(swing:Dictionary, points:PackedVector2Array, active:Array) -> PackedVector2Array:
 	var from_screen = to_screen.affine_inverse()
-	for swing in swings:
-		var targets := PackedVector2Array()
-		for k in len(swing.points):
-			var i = swing.points[k]
-			var anchor: Vector2 = swing.anchors[k]
-			var hanging = rest[i] + from_screen.basis_xform(_shaped(anchor, active) - anchor)
-			targets.append(shaped_points[i].lerp(hanging, swing.looseness[k]))
-		swing.targets = targets
+	var anchored := {}
+	var targets := PackedVector2Array()
+	for k in len(swing.points):
+		var i = swing.points[k]
+		var anchor: Vector2 = swing.anchors[k]
+		if not anchored.has(anchor):
+			anchored[anchor] = from_screen.basis_xform(_shaped(anchor, active) - anchor)
+		targets.append(points[i].lerp(rest[i] + anchored[anchor], swing.looseness[k]))
+	return targets
 
 # Shows the grid's points with blinking, breathing and swinging on top of the doll's shape
 func _show() -> void:
 	var points = shaped_points
 	if not moving.is_empty() and (blink > 0.0 or breath > 0.0):
-		var active = _active(blink, breath)
+		var face = _face_now()
+		var active = _active(blink, breath, face)
 		var from_screen = to_screen.affine_inverse()
 		points = shaped_points.duplicate()
 		for i in moving:
@@ -445,21 +573,23 @@ func _show() -> void:
 # areas with the eyes closed and the doll breathed in
 func _find_moving() -> void:
 	moving = PackedInt32Array()
-	var names := []
-	if can_blink:
-		names.append(blink_slider)
-	if can_breathe:
-		names.append(breathe_slider)
-	if names.is_empty():
-		return
-	var active = _active(1.0, 1.0)
+	var active = _active(1.0, 1.0, expression)
 	for i in len(rest):
-		var moved = to_screen * rest[i]
-		for entry in active:
-			if entry[0].slider in names and entry[0].reaches(moved, entry[2]):
-				moving.append(i)
-				break
-			moved = entry[0].shaped(moved, entry[1], entry[2])
+		if _moves(i, active):
+			moving.append(i)
+
+# Whether blinking or breathing moves grid point i, with the controls active
+# as _active() gives them with the eyes closed and breathed in
+func _moves(i:int, active:Array) -> bool:
+	var moved = to_screen * rest[i]
+	for entry in active:
+		if _blinks_or_breathes(entry[0]) and entry[0].reaches(moved, entry[2]):
+			return true
+		moved = entry[0].shaped(moved, entry[1], entry[2])
+	return false
+
+func _blinks_or_breathes(control) -> bool:
+	return (can_blink and control.slider == blink_slider) or (can_breathe and control.slider == breathe_slider)
 
 # Finds which grid points of which layers swing, and how loosely
 func _find_swings() -> void:
@@ -509,7 +639,9 @@ func _process(delta:float) -> void:
 	if rest.is_empty():
 		return
 	delta = minf(delta, 1.0 / 30.0)
-	var changed = _blink(delta)
+	_work_out_pose()
+	var changed = _move_pose(delta)
+	changed = _blink(delta) or changed
 	if can_breathe and not neutral:
 		breath_clock = fmod(breath_clock + delta, breath_time)
 		breath = (1.0 - cos(TAU * breath_clock / breath_time)) / 2.0
@@ -520,6 +652,101 @@ func _process(delta:float) -> void:
 			changed = true
 	if changed:
 		_show()
+
+# Works out more of the pose asked for by show_expression(), for at most POSE_BUDGET
+# each frame: where each grid point goes, which ones blinking and breathing move,
+# and where swinging points hang. Then the doll starts moving to it.
+func _work_out_pose() -> void:
+	if next_face == null:
+		return
+	var from_screen = to_screen.affine_inverse()
+	var stop_at = Time.get_ticks_usec() + POSE_BUDGET
+	while len(next_points) < len(rest):
+		next_points.append(from_screen * _shaped(to_screen * rest[len(next_points)], next_active))
+		if len(next_points) % 32 == 0 and Time.get_ticks_usec() > stop_at:
+			return
+	# only points near blinking's and breathing's controls in the new pose can be moved by them
+	var near := []
+	for entry in next_closed:
+		if entry[0] is BodyControl and _blinks_or_breathes(entry[0]):
+			var size = entry[0].reach * entry[0].global_scale.abs() * 1.5 + Vector2.ONE * NEAR_MARGIN
+			near.append([from_screen * _shaped(entry[2], next_active), from_screen.basis_xform(size).abs()])
+	while next_checked < len(rest):
+		var spot = next_points[next_checked]
+		if near.any(func(control): return ((spot - control[0]) / control[1]).length_squared() < 1.0) \
+				and _moves(next_checked, next_closed):
+			next_moving.append(next_checked)
+		next_checked += 1
+		if next_checked % 32 == 0 and Time.get_ticks_usec() > stop_at:
+			return
+	while len(next_hanging) < len(swings):
+		next_hanging.append(_hanging(swings[len(next_hanging)], next_points, next_active))
+		if Time.get_ticks_usec() > stop_at:
+			return
+	_start_pose()
+
+# Starts moving from the pose shown now (maybe part way through another move) to the new one
+func _start_pose() -> void:
+	expression_from = _face_now()
+	expression = next_face
+	next_face = null
+	pose_from = shaped_points
+	pose_to = next_points
+	# both poses' moving points, until the move is done
+	moving_after = next_moving
+	var both := {}
+	for i in moving:
+		both[i] = true
+	for i in next_moving:
+		both[i] = true
+	moving = PackedInt32Array(both.keys())
+	for k in len(swings):
+		swings[k].from = swings[k].targets
+		swings[k].to = next_hanging[k]
+	pose_clock = 0.0
+	pose_time = maxf(next_seconds, 0.01)
+	pose_snappy = next_snappy
+	pose_weight = 0.0
+	expression_started.emit()
+
+# Moves the doll along towards its new pose. Returns true when it moved.
+func _move_pose(delta:float) -> bool:
+	if pose_time <= 0.0:
+		return false
+	pose_clock += delta
+	if pose_clock >= pose_time:
+		pose_time = 0.0
+		pose_weight = 1.0
+		expression_from = expression
+		shaped_points = pose_to
+		moving = moving_after
+		for swing in swings:
+			swing.targets = swing.to
+		return true
+	if pose_snappy:
+		pose_weight = Tween.interpolate_value(0.0, 1.0, pose_clock, pose_time, Tween.TRANS_BACK, Tween.EASE_OUT)
+	else:
+		pose_weight = Tween.interpolate_value(0.0, 1.0, pose_clock, pose_time, Tween.TRANS_SINE, Tween.EASE_IN_OUT)
+	shaped_points = _between(pose_from, pose_to, pose_weight)
+	for swing in swings:
+		swing.targets = _between(swing.from, swing.to, pose_weight)
+	return true
+
+static func _between(from:PackedVector2Array, to:PackedVector2Array, weight:float) -> PackedVector2Array:
+	var result := PackedVector2Array()
+	result.resize(len(to))
+	for i in len(to):
+		result[i] = from[i].lerp(to[i], weight)
+	return result
+
+# The pose shown now: part way from expression_from to expression while the doll moves
+func _face_now() -> Dictionary:
+	if pose_time <= 0.0:
+		return expression
+	var face := {}
+	for slider in expression_from.keys() + expression.keys():
+		face[slider] = lerpf(expression_from.get(slider, 0.0), expression.get(slider, 0.0), pose_weight)
+	return face
 
 # Moves the blink along. Returns true when the eyes moved.
 func _blink(delta:float) -> bool:

@@ -9,7 +9,9 @@
 #   0.5 changes the inner half fully (good for moving a whole mouth). Harder edges
 #   can't stretch or move as far before the picture would fold over, so they are held back.
 #   Bend lifts the area's left and right ends more than its middle (in pixels at the
-#   oval's sides), like the corners of a smiling mouth.
+#   oval's sides), like the corners of a smiling mouth. Bend Side lifts one end more than
+#   the other: 1 lifts only the right end (as seen on the screen), twice as far, like a smirk,
+#   and -1 only the left end.
 #   Swing makes the area hang and swing when the doll moves, like long hair (it needs no
 #   slider). It hangs from the oval's top: the bottom swings fully, the top stays put,
 #   and the sides fade with Soft Edge. Swing Layers says which layers swing: words found
@@ -59,6 +61,7 @@ const STRETCH_LIMITS := Vector2(0.05, 2.0)
 @export var stretch := Vector2(0.25, 0.0)
 @export var move := Vector2.ZERO
 @export var bend := 0.0
+@export_range(-1.0, 1.0) var bend_side := 0.0
 @export var turn := 0.0:
 	set(value):
 		turn = value
@@ -101,7 +104,8 @@ func shaped(point:Vector2, value:float, center := global_position) -> Vector2:
 	var biggest = minf(STRETCH_LIMITS.y, 1.0 + 1.2 * pow(soft, 1.45))
 	var factor = (Vector2.ONE + stretch * value).clamp(Vector2.ONE * STRETCH_LIMITS.x, Vector2.ONE * biggest)
 	var furthest = size * 0.6 * soft
-	var lift = Vector2(0, -bend * value * pow(from_center.x / size.x, 2))
+	var across = from_center.x / size.x
+	var lift = Vector2(0, -bend * value * across * across * (1.0 + bend_side * across))
 	var shift = (move * value + lift).clamp(-furthest, furthest)
 	return point + (from_center * (factor - Vector2.ONE) + shift) * weight
 

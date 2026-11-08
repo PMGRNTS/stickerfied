@@ -164,7 +164,8 @@ Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
 - The speaker button turns sound on and off (remembered for next time)
 - Save keeps the outfit with a small picture; Outfits lists saved outfits
 - Share gives a code (starting with DU1-) that a friend can paste to wear the same outfit
-- Photo saves a picture without the menus (a download in the browser)
+- Photo saves a picture without the menus (a download in the browser). The doll strikes
+  a pose for it first.
 - AI Create makes a new background, sticker or doll item from a description (see below)
 - AI Stylist dresses the doll for an occasion, or judges the outfit (see below)
 - Challenge (bottom left) gives a theme to dress up for before the time runs out.
@@ -196,7 +197,7 @@ placed anywhere on the doll, unlike layers.
 Body shaping:
 The Body menu (the last category button) has sliders that reshape the doll:
 head size, shoulders, waist, hips, legs and height, eye size, eye spacing,
-mouth size, mouth height, cheeks, squint and smile, and a head tilt and lean to pose it.
+mouth size, mouth height, cheeks, squint, smile and smirk, and a head tilt and lean to pose it.
 The doll blinks and breathes, and long hair swings when the doll moves.
 Every layer bends the same way, so the hair, face and clothes still fit, and
 stickers bend with the part of the doll they are on: a sticker on the waist gets wider
@@ -262,6 +263,31 @@ The shape is saved with outfits and included in share codes, and Random leaves i
 - Breathing works the same way with "Breathe Slider" (Breathing in the example) and
   "Breath Time": its controls go from the middle to all the way right and back again.
   Leave its controls' Group empty, so it isn't listed in the Body menu.
+- Bend Side lifts one end of a Bend more than the other, like the corner of a smirk.
+- New controls that a player's fit doesn't have yet follow a fitted control on the same
+  Landmark, so they land on the right part of the doll without fitting again.
+
+Personality:
+The doll has a personality (script/doll_mood.gd, on the DollMood node): a bratty,
+high-maintenance girl. She stands with her weight on one hip looking unimpressed, shifts
+her hips, gives side-eye and flicks her hair, and rolls her eyes and sighs when she's bored.
+She loves some items and colors and hates others: she lights up, looks things up and down,
+or pauses, rolls her eyes and pouts, and gets impatient if things change too fast.
+She strikes a pose for photos, and holds still while stickers are arranged or the doll is
+fitted or sculpted. Her poses are never saved in outfits or share codes.
+Clicking on her is a poke: she jumps away, then looks, glares, pouts, and after a few
+pokes in a row she sulks, turned away, until the time runs out or she's put in something
+she loves. She calms down if left alone. She has opinions about the AI judge's score too,
+once its window is closed. She says what she thinks in a speech bubble (not in photos).
+- Select DollMood to set the words in item names she always "Loves" or "Hates" (every other
+  item gets an opinion of its own that never changes), her "Favorite Hues", how often she
+  fidgets, how soon she gets bored and how long she sulks. Untick "Talks" for no bubbles.
+- What she says is in LINES at the top of doll_mood.gd; add or change lines there.
+- Her faces and reactions are lists of slider values at the top of doll_mood.gd; change
+  them to give her another personality. They use the Body menu's sliders plus Look across
+  and Look up (the LookAcross and LookUp controls move the eyes; they have no Group, so they
+  aren't in the Body menu). Sliders a doll doesn't have are left out.
+- Remove the DollMood node for a doll that only blinks and breathes.
 - Areas fade out towards their edge, so keep each oval clear of parts it shouldn't change
   (the eyes' ovals stop above the mouth). If your faces or clothes differ a lot,
   make the ovals big enough for all of them.

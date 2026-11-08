@@ -228,6 +228,9 @@ func judge() -> void:
 	%Result.show()
 	_set_status(_cost_text(result).strip_edges())
 	Sfx.play("sparkle")
+	# the doll has an opinion about it, once this window is closed (see doll_mood.gd)
+	if toolbar.doll_mood:
+		toolbar.doll_mood.react_to_score(score, MAX_SCORE, self)
 
 func _set_status(text: String) -> void:
 	%StatusLabel.text = text

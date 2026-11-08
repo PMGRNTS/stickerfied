@@ -13,6 +13,8 @@
 # Stickers follow the doll's shape (the Body menu): outfits keep where each sticker is on
 # the doll as drawn, and its picture is bent along with that part of the doll, breathing too
 # (see sticker_mesh.gd). Its frame and handles move, turn and grow with it, but stay straight.
+# Stickers' pictures also move with the doll's poses (see show_expression in body_shaper.gd),
+# but their frames and handles don't: the doll holds still while stickers are arranged.
 
 extends Node2D
 
@@ -20,6 +22,9 @@ const StickerMesh = preload("res://script/sticker_mesh.gd")
 
 # The player wants to erase parts of the sticker at this index
 signal erase_requested(index:int)
+# The player clicked (without dragging) where there is no sticker, with none selected,
+# such as on the doll itself (see doll_mood.gd)
+signal clicked(point:Vector2)
 
 @export var interactivity: Node
 # New stickers appear near this node (the SpritePlaceholder marks the middle of the doll)
@@ -52,6 +57,7 @@ var selection := [] # indexes of the selected stickers, lowest first
 var drag := Drag.NONE
 var drag_start_point := Vector2.ZERO
 var box_end := Vector2.ZERO # the selection box's other corner
+var box_on_nothing := false # the selection box started with nothing selected, so a click is just a click
 var drag_start := [] # the selected stickers when the drag started, see _capture()
 var drag_start_frame := {}
 var drag_pivot := Vector2.ZERO
@@ -60,6 +66,9 @@ var drag_angle := 0.0
 var drag_axis := 0 # the edge being stretched: 0 makes the sticker wider, 1 taller
 var changed_while_dragging := false
 var breathed := 0.0 # how far the stickers are shown breathed in
+var posed_from := [] # for each sticker, how the pose the doll moves from moves it (a Transform2D)
+var posed_to := [] # and how the pose it moves to moves it
+var posed_weight := 1.0 # how far between them the stickers are shown
 
 @onready var handles: Node2D = Node2D.new()
 @onready var commit_timer: Timer = Timer.new()
@@ -74,6 +83,7 @@ func _ready() -> void:
 	add_child(commit_timer)
 	if body_shaper:
 		body_shaper.shape_changed.connect(_follow_shape)
+		body_shaper.expression_started.connect(_follow_pose)
 
 
 #####################################
@@ -95,6 +105,7 @@ func show_stickers(new_stickers:Array) -> void:
 		sprites.append(sprite)
 	while len(sprites) > len(stickers):
 		sprites.pop_back().queue_free()
+	_find_poses()
 	for i in len(stickers):
 		var button = interactivity.sticker_tab.get_item_button(stickers[i].id)
 		sprites[i].texture = button.image if button else null
@@ -109,6 +120,34 @@ func _place_sprite(i:int) -> void:
 	sprites[i].rotation = stickers[i].rot
 	sprites[i].flip_h = stickers[i].get("flip", false)
 	_bend(i)
+	_pose_sprite(i)
+
+# Moves sticker i's picture along with the doll's pose, from where the sprite puts it
+func _pose_sprite(i:int) -> void:
+	var mesh: Node2D = sprites[i].get_child(0)
+	if i >= len(posed_to) or body_shaper == null:
+		mesh.transform = Transform2D.IDENTITY
+		return
+	var moved: Transform2D = posed_from[i].interpolate_with(posed_to[i], body_shaper.pose_weight)
+	mesh.transform = sprites[i].transform.affine_inverse() * moved * sprites[i].transform
+
+# Works out how the poses the doll moves from and to move each sticker
+func _find_poses() -> void:
+	posed_from = []
+	posed_to = []
+	if body_shaper == null:
+		return
+	for sticker in drawn:
+		var spot = Vector2(sticker.x, sticker.y)
+		posed_from.append(body_shaper.posed(spot, body_shaper.expression_from))
+		posed_to.append(body_shaper.posed(spot, body_shaper.expression))
+	posed_weight = body_shaper.pose_weight
+
+# The doll started moving to a new pose: the stickers go with it
+func _follow_pose() -> void:
+	_find_poses()
+	for i in len(sprites):
+		_pose_sprite(i)
 
 # Lays a grid over sticker i's picture and bends it along with the doll:
 # the sticker is placed on the doll as drawn, and each grid point goes where the doll's
@@ -160,6 +199,10 @@ func _process(_delta:float) -> void:
 	if handles.transform != to_screen.affine_inverse():
 		handles.transform = to_screen.affine_inverse()
 		handles.queue_redraw()
+	if body_shaper and body_shaper.pose_weight != posed_weight:
+		posed_weight = body_shaper.pose_weight
+		for i in len(sprites):
+			_pose_sprite(i)
 	if body_shaper == null or body_shaper.breath == breathed or not visible:
 		return
 	breathed = body_shaper.breath
@@ -178,6 +221,7 @@ func new_sticker_position() -> Vector2:
 # The doll changed shape: the stickers move with it
 func _follow_shape() -> void:
 	stickers = drawn.map(_shown)
+	_find_poses()
 	for i in len(stickers):
 		_place_sprite(i)
 	handles.queue_redraw()
@@ -349,6 +393,7 @@ func _on_press(point:Vector2, shift:bool) -> void:
 		select(index)
 	elif index < 0 and not (len(selection) > 1 and _frame_has_point(point)):
 		# empty space: start a selection box
+		box_on_nothing = selection.is_empty() and not shift
 		if not shift:
 			deselect()
 		drag = Drag.BOX
@@ -388,6 +433,8 @@ func _on_release(point:Vector2, shift:bool) -> void:
 		if box.size.length() >= MIN_BOX_SIZE:
 			var inside = _stickers_in_box(box)
 			set_selection(selection + inside.filter(func(i): return not i in selection) if shift else inside)
+		elif box_on_nothing:
+			clicked.emit(point)
 		handles.queue_redraw()
 	elif changed_while_dragging:
 		_commit()
