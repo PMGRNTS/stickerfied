@@ -8,6 +8,10 @@
 # Poking her (clicking on the doll) annoys her more each time, until she sulks: she turns
 # away for a while, and only something she loves makes up for it. She has opinions about
 # the AI judge's score too. She says what she thinks in a speech bubble.
+# She looks at items and colors the mouse is on if she loves them, and turns her nose up at
+# ones she hates (ones she doesn't care about she ignores). Every minute or so she wants
+# something: a color, a new item for a layer or a new background. She waits a while for it,
+# reminds the player once, and gives up in a huff if it never comes.
 #
 # Faces are slider values added on top of the player's Body sliders (see body_control.gd),
 # such as {"Smile": -0.6, "Cheeks": 0.4} for a pout. Sliders the doll doesn't have are left
@@ -49,6 +53,10 @@ const BodyControl = preload("res://script/body_control.gd")
 @export var bored_after := 20.0
 # How long she sulks, in seconds
 @export var sulk_time := 15.0
+# Turn this off and she never asks for anything
+@export var demands := true
+# Shortest and longest time between her demands, in seconds
+@export var demand_every := Vector2(40.0, 80.0)
 
 # This many changes within FAST_TIME seconds make her impatient
 const FAST_CHANGES := 4
@@ -64,6 +72,8 @@ const BUBBLE_TIME := 1.4
 const BUBBLE_TIME_PER_LETTER := 0.06
 # The bubble's tail: how far its panel is from the doll's head, across and up
 const BUBBLE_TAIL := Vector2(18, 16)
+# How long she waits for what she asked for, in seconds
+const DEMAND_TIME := 30.0
 
 # Sliders that turn or look to one side
 const SIDED := ["Lean", "Head tilt", "Look across"]
@@ -93,9 +103,11 @@ const SULK := {"Lean": -0.35, "Head tilt": -0.45, "Look across": -1.0, "Squint":
 const FLINCH := {"Lean": 0.5, "Head tilt": 0.3, "Eye size": 0.35, "Squint": -0.2, "Smile": -0.2}
 const LOOK_BACK := {"Lean": 0.35, "Head tilt": -0.1, "Look across": -0.9, "Squint": 0.2, "Eye size": 0.15}
 const GLARE := {"Lean": 0.3, "Head tilt": -0.3, "Look across": -1.0, "Squint": 0.6, "Smile": -0.4}
+# Asking for something: hip out, looking right at whoever should get it
+const DEMAND := {"Lean": 0.55, "Head tilt": 0.2, "Squint": 0.35, "Smile": -0.25, "Look across": -0.4, "Eye size": 0.1}
 
 # What she says. A line is picked at random (not the same one twice in a row);
-# %d is the judge's score.
+# %d is the judge's score, and %s what she wants (a color or a layer's name).
 const LINES := {
 	"love": ["Obsessed.", "Okay, finally.", "Now THIS is me.", "I look expensive.", "Yes. Yes yes yes."],
 	"not_sure": ["It's... fine.", "Hmm. Maybe.", "It's giving... something.", "I guess?"],
@@ -114,6 +126,17 @@ const LINES := {
 	"judge_high": ["Obviously.", "Told you.", "I know, right?"],
 	"judge_mid": ["A %d? I'll allow it.", "Only a %d? Whatever."],
 	"judge_low": ["The judge is clearly jealous.", "A %d?! Rigged.", "I'm not talking to anyone."],
+	"eyeing_love": ["Ooh.", "Wait. That one.", "Gimme."],
+	"eyeing_hate": ["Don't you dare.", "Don't even think about it.", "Ew."],
+	"demand_color": ["I want something %s.", "Make something %s. Now.", "Why isn't anything %s?"],
+	"demand_layer": ["New %s. Now.", "I'm so over this %s.", "Change my %s. Please. Now."],
+	"demand_background": ["Take me somewhere else.", "I hate it here. New background."],
+	"remind_color": ["Still waiting for something %s.", "Something %s? Hello?"],
+	"remind_layer": ["Still waiting on that new %s.", "Hello? New %s?"],
+	"remind_background": ["Still here. Still hate it.", "New background. Today."],
+	"demand_met": ["Finally!", "See? Was that so hard?", "Thank you. Finally."],
+	"demand_wrong": ["Not THAT one.", "Ew, not that.", "Try again."],
+	"demand_failed": ["Forget it.", "Ugh. Never mind.", "Fine. I'll just stand here."],
 }
 
 var side := 1.0 # the hip she stands on: 1 right, -1 left
@@ -127,7 +150,14 @@ var last_outfit := {}
 var annoyed := 0.0 # how annoyed pokes made her, 0 to POKES_TO_SULK
 var sulking := 0.0 # seconds of sulking left
 var score_waiting := [] # [score, best, window] from the judge, until its window is closed
-var last_score := 0 # the judge's last score, for lines with %d
+var eyeing: Control = null # the item button or color swatch the mouse is on, if she cares about it
+var eyeing_opinion := 0 # 1 if she loves what she's eyeing, -1 if she hates it
+var gaze_face := {} # the face she makes at what she's eyeing, or {} when she isn't looking at anything
+# What she wants: {"kind": "color", "hue", "name"}, {"kind": "layer" or "background", "layer", "name"},
+# or {} for nothing. "reminded" is true once she has asked again.
+var demand := {}
+var demand_wait := 0.0 # seconds until she wants something
+var demand_left := 0.0 # seconds she still waits for it
 
 var bubble: Control # the speech bubble: its tail's tip is where it is placed
 var bubble_panel: PanelContainer
@@ -137,10 +167,12 @@ var last_line := ""
 
 func _ready() -> void:
 	interactivity.outfit_changed.connect(_on_outfit_changed)
+	SignalBus.dressup_hover_signal.connect(_on_hover)
 	if sticker_stage:
 		sticker_stage.clicked.connect(_on_doll_clicked)
 	if bubble_parent:
 		_make_bubble()
+	demand_wait = randf_range(demand_every.x, demand_every.y) / 2
 
 func _process(delta:float) -> void:
 	if bubble and bubble.visible:
@@ -166,6 +198,7 @@ func _process(delta:float) -> void:
 		sulking -= delta
 		if sulking <= 0.0:
 			_play([_say_step("sulk_over")] + _rest())
+	_wait_for_demand(delta)
 	if body_shaper.is_posing():
 		return
 	if hold > 0.0:
@@ -173,6 +206,8 @@ func _process(delta:float) -> void:
 		return
 	if not steps.is_empty():
 		_next_step()
+		return
+	if _look_at_eyeing():
 		return
 	fidget_wait -= delta
 	if fidget_wait <= 0.0:
@@ -215,6 +250,7 @@ func _holding_still() -> bool:
 func _play(new_steps:Array) -> void:
 	steps = new_steps
 	hold = 0.0
+	gaze_face = {}
 	_next_step()
 
 func _next_step() -> void:
@@ -223,7 +259,7 @@ func _next_step() -> void:
 	var step = steps.pop_front()
 	if len(step) > 4:
 		if randf() < step[5]:
-			_say(step[4])
+			_say(step[4], step[6])
 	elif step[0] != null:
 		body_shaper.show_expression(step[0], step[1], step[2])
 	hold = step[3]
@@ -238,9 +274,10 @@ func _step(face, seconds:float, snappy := false, hold_for := 0.0, facing := 0.0)
 				face[slider] *= facing if facing != 0.0 else side
 	return [face, seconds, snappy, hold_for]
 
-# A step that says a line of this kind from LINES, sometimes (chance is 0 to 1)
-func _say_step(kind:String, chance := 1.0) -> Array:
-	return [null, 0.0, false, 0.0, kind, chance]
+# A step that says a line of this kind from LINES, sometimes (chance is 0 to 1),
+# with value filled in for its %d or %s
+func _say_step(kind:String, chance := 1.0, value = null) -> Array:
+	return [null, 0.0, false, 0.0, kind, chance, value]
 
 func _rest() -> Array:
 	return [_step(SULK if sulking > 0.0 else RESTING, 0.45)]
@@ -282,8 +319,8 @@ func _not_sure() -> Array:
 	return [_step(LOOK_DOWN, 0.25, false, 0.35), _say_step("not_sure", 0.4), _step(NOT_BAD, 0.3, false, 0.9)] + _rest()
 
 # A pause, as if she can't believe it, then an eye roll and a pout
-func _hate() -> Array:
-	return [_step(null, 0.0, false, 0.35), _say_step("hate", 0.7)] + _eye_roll() \
+func _hate(kind := "hate", chance := 0.7) -> Array:
+	return [_step(null, 0.0, false, 0.35), _say_step(kind, chance)] + _eye_roll() \
 		+ [_step(POUT, 0.16, true, 1.4)] + _rest()
 
 # Something she loved was taken off
@@ -329,14 +366,13 @@ func _on_head(point:Vector2) -> bool:
 	return false
 
 func _react_to_score(score:int, best:int) -> void:
-	last_score = score
 	var rating = float(score) / maxf(best, 1)
 	if rating >= 0.8:
-		_play([_say_step("judge_high"), _step(SMUG, 0.2, true, 1.8)] + _rest())
+		_play([_say_step("judge_high", 1.0, score), _step(SMUG, 0.2, true, 1.8)] + _rest())
 	elif rating >= 0.5:
-		_play([_step(LOOK_DOWN, 0.25, false, 0.3), _say_step("judge_mid"), _step(NOT_BAD, 0.3, false, 1.2)] + _rest())
+		_play([_step(LOOK_DOWN, 0.25, false, 0.3), _say_step("judge_mid", 1.0, score), _step(NOT_BAD, 0.3, false, 1.2)] + _rest())
 	else:
-		_play([_step(null, 0.0, false, 0.4), _say_step("judge_low")] + _eye_roll() + _sulk())
+		_play([_step(null, 0.0, false, 0.4), _say_step("judge_low", 1.0, score)] + _eye_roll() + _sulk())
 
 
 #####################################
@@ -355,6 +391,8 @@ func _on_outfit_changed() -> void:
 	var opinion := 0
 	var changed := false
 	var lost_favorite := false
+	var got_demand := false # she got what she wanted
+	var wrong_demand := false # she got something she hates instead
 	for layer in interactivity.layers:
 		if interactivity.is_required(layer) and not interactivity.is_background(layer):
 			continue # the doll's body
@@ -363,6 +401,12 @@ func _on_outfit_changed() -> void:
 		if was == now:
 			continue
 		changed = true
+		if demand.get("kind") == "color" and now.item != "" and now.hue >= 0.0 \
+				and absf(now.hue - demand.hue) < 0.04 and now.hue != was.get("hue"):
+			got_demand = true
+		elif demand.get("layer") == layer and now.item != "" and now.item != was.get("item"):
+			got_demand = _opinion(layer, now.item, now.hue) >= 0
+			wrong_demand = not got_demand
 		if now.item == "":
 			lost_favorite = lost_favorite or _opinion(layer, str(was.get("item", "")), float(was.get("hue", -1.0))) > 0
 		elif now.item == was.get("item"):
@@ -375,7 +419,16 @@ func _on_outfit_changed() -> void:
 	var now_time = Time.get_ticks_msec() / 1000.0
 	changes = changes.filter(func(time): return now_time - time < FAST_TIME)
 	changes.append(now_time)
-	if len(changes) >= FAST_CHANGES:
+	if got_demand:
+		demand = {}
+		demand_wait = randf_range(demand_every.x, demand_every.y)
+		sulking = 0.0
+		changes = []
+		_play([_say_step("demand_met"), _step(LOVE, 0.18, true, 0.15), _step(LOVE_HOLD, 0.25, false, 1.5)] + _rest())
+		Sfx.play("sparkle")
+	elif wrong_demand:
+		_play(_hate("demand_wrong", 1.0))
+	elif len(changes) >= FAST_CHANGES:
 		changes = []
 		_play(_impatient())
 	elif lost_favorite:
@@ -419,10 +472,127 @@ static func _words(list:String) -> Array:
 
 
 #####################################
+############## EYEING ###############
+#####################################
+
+# The mouse moved onto an item button or color swatch (control), or off one (control is null)
+func _on_hover(control, layer:String, item_id:String, hue:float) -> void:
+	eyeing = null
+	if control == null or not interactivity.outfit.has(layer) \
+			or (interactivity.is_required(layer) and not interactivity.is_background(layer)):
+		return # not a layer, or the doll's body
+	var worn = interactivity.outfit[layer]
+	var opinion := 0
+	if item_id == "" and hue >= 0.0 and worn.item != "" and not is_equal_approx(hue, worn.hue):
+		opinion = _color_opinion(layer, worn.item, hue)
+	elif item_id != "" and not item_id.begins_with("::") and item_id != worn.item:
+		opinion = _opinion(layer, item_id, worn.hue)
+	if opinion == 0:
+		return # she couldn't care less
+	eyeing = control
+	eyeing_opinion = opinion
+	if steps.is_empty() and hold <= 0.0 and sulking <= 0.0 and randf() < 0.35:
+		_say("eyeing_love" if opinion > 0 else "eyeing_hate")
+
+# While she isn't doing anything else, she looks at what she's eyeing: eyes wide and head
+# tilted towards something she loves, nose up and looking away from something she hates.
+# Returns true while she does.
+func _look_at_eyeing() -> bool:
+	var face = _eyeing_face()
+	if face != gaze_face:
+		gaze_face = face
+		if face.is_empty():
+			body_shaper.show_expression(_rest()[0][0], 0.3)
+		else:
+			body_shaper.show_expression(face, 0.2, true)
+	return not gaze_face.is_empty()
+
+func _eyeing_face() -> Dictionary:
+	if eyeing == null or not is_instance_valid(eyeing) or not eyeing.is_visible_in_tree() or sulking > 0.0:
+		return {}
+	var toward = eyeing.get_global_rect().get_center() - get_viewport().canvas_transform * _head(0.0)
+	var across = snappedf(clampf(toward.x / 150.0, -1.0, 1.0), 0.1)
+	var up = snappedf(clampf(-toward.y / 200.0, -1.0, 1.0), 0.1)
+	var face: Dictionary = _step(RESTING, 0.0)[0]
+	if eyeing_opinion > 0:
+		face.merge({"Look across": across, "Look up": up, "Eye size": 0.25, "Squint": 0.05, "Smile": 0.3,
+			"Head tilt": face["Head tilt"] + 0.25 * signf(across)}, true)
+	else:
+		face.merge({"Look across": -signf(across), "Look up": 0.6, "Squint": 0.5, "Smile": -0.3,
+			"Head tilt": face["Head tilt"] - 0.3 * signf(across)}, true)
+	return face
+
+
+#####################################
+############## DEMANDS ##############
+#####################################
+
+# Counts down to her next demand, and how long she still waits for the one she made.
+# She only asks when she isn't busy, and reminds the player once, half way through.
+func _wait_for_demand(delta:float) -> void:
+	if not demands:
+		return
+	var free = steps.is_empty() and hold <= 0.0 and sulking <= 0.0
+	if demand.is_empty():
+		demand_wait -= delta
+		if demand_wait <= 0.0 and free:
+			_make_demand()
+		return
+	demand_left -= delta
+	if demand_left <= 0.0:
+		demand = {}
+		demand_wait = randf_range(demand_every.x, demand_every.y)
+		_play([_say_step("demand_failed")] + _sigh() + _eye_roll() + _rest())
+	elif demand_left <= DEMAND_TIME / 2 and not demand.reminded and free:
+		demand.reminded = true
+		_play([_step(SIDE_EYE, 0.15, true), _say_step("remind_" + demand.kind, 1.0, demand.name),
+			_step(null, 0.0, false, 1.2)] + _rest())
+
+# Picks something to want: one of her favorite colors, a new item for a layer that has
+# more than one, or a new background
+func _make_demand() -> void:
+	var options := []
+	for hue in favorite_hues:
+		options.append({"kind": "color", "hue": hue, "name": _color_name(hue)})
+	for i in len(interactivity.layers):
+		var layer = interactivity.layers[i]
+		if (interactivity.is_required(layer) and not interactivity.is_background(layer)) \
+				or len(interactivity.tab_nodes[i].get_item_ids()) < 2:
+			continue
+		var kind = "background" if interactivity.is_background(layer) else "layer"
+		options.append({"kind": kind, "layer": layer, "name": _layer_name(layer)})
+	if options.is_empty():
+		demand_wait = randf_range(demand_every.x, demand_every.y)
+		return
+	demand = options.pick_random()
+	demand.reminded = false
+	demand_left = DEMAND_TIME
+	_play([_step(DEMAND, 0.2, true), _say_step("demand_" + demand.kind, 1.0, demand.name),
+		_step(null, 0.0, false, 1.5)] + _rest())
+
+# The name of the color swatch closest to hue, such as "pink" (see tab_of_buttons.gd)
+func _color_name(hue:float) -> String:
+	var tab = interactivity.tab_nodes[0]
+	var closest = 1
+	for i in range(1, len(tab.SWATCH_HUES)):
+		if absf(tab.SWATCH_HUES[i] - hue) < absf(tab.SWATCH_HUES[closest] - hue):
+			closest = i
+	return tab.SWATCH_NAMES[closest]
+
+# A layer's folder name without its number, such as "hair" for 03Hair
+static func _layer_name(layer:String) -> String:
+	var name = layer
+	while name != "" and (name[0].is_valid_int() or name[0] in "_- "):
+		name = name.substr(1)
+	return name.to_lower() if name != "" else "outfit"
+
+
+#####################################
 ############## SPEECH BUBBLE ########
 #####################################
 
-func _say(kind:String) -> void:
+# Says a line of this kind from LINES, with value filled in for its %d or %s
+func _say(kind:String, value = null) -> void:
 	if not talks or bubble == null:
 		return
 	var lines = Array(LINES.get(kind, [])).filter(func(line): return line != last_line)
@@ -430,7 +600,8 @@ func _say(kind:String) -> void:
 		return
 	last_line = lines.pick_random()
 	var label: Label = bubble_panel.get_child(0)
-	label.text = last_line % last_score if last_line.contains("%d") else last_line
+	label.text = last_line % value if value != null and last_line.contains("%") else last_line
+	label.text = label.text[0].to_upper() + label.text.substr(1)
 	bubble_panel.reset_size()
 	bubble.show()
 	_place_bubble()
@@ -476,12 +647,7 @@ func _draw_tail(tail:Control) -> void:
 # Puts the bubble's tail at the top of her head, where it is on the screen now (zoomed or not),
 # and its panel to the right, or to the left when there's no room
 func _place_bubble() -> void:
-	var head = body_shaper.to_screen * (body_shaper.middle - Vector2(0, body_shaper.image_size.y / 2))
-	for control in body_shaper.controls():
-		if control.landmark == BodyControl.Landmark.HEAD:
-			head = body_shaper.shaped(control.global_position - Vector2(0, control.reach.y * control.global_scale.y * 0.7))
-			break
-	var spot = bubble.get_viewport().canvas_transform * head
+	var spot = get_viewport().canvas_transform * _head(0.7)
 	var room = bubble_parent.size
 	var size = bubble_panel.size
 	var flipped = spot.x + BUBBLE_TAIL.x + size.x > room.x - 8 and spot.x - BUBBLE_TAIL.x - size.x >= 8
@@ -491,3 +657,11 @@ func _place_bubble() -> void:
 	spot.y = maxf(spot.y, size.y + BUBBLE_TAIL.y + 8)
 	bubble.position = spot
 	bubble_panel.position = Vector2(-BUBBLE_TAIL.x - size.x if flipped else BUBBLE_TAIL.x, -BUBBLE_TAIL.y - size.y)
+
+# A spot on her head, on the doll (not the screen): up is how far above its middle,
+# from 0 (the middle) to 1 (the top). Without a Head control, the top of the doll's pictures.
+func _head(up:float) -> Vector2:
+	for control in body_shaper.controls():
+		if control.landmark == BodyControl.Landmark.HEAD:
+			return body_shaper.shaped(control.global_position - Vector2(0, control.reach.y * control.global_scale.y * up))
+	return body_shaper.to_screen * (body_shaper.middle - Vector2(0, body_shaper.image_size.y / 2))

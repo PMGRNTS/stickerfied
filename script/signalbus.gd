@@ -26,3 +26,9 @@ signal dressup_body_signal(values)
 # Sent while a Body slider is dragged: the doll shows the shape, but the outfit doesn't change yet.
 @warning_ignore("unused_signal")
 signal dressup_body_preview_signal(values)
+
+# Sent when the mouse moves onto an item button or a color swatch (control is the button),
+# and with control null when it moves off. item_id is "" for a swatch, and hue -1 for an item.
+# The doll looks at things she likes (see doll_mood.gd).
+@warning_ignore("unused_signal")
+signal dressup_hover_signal(control, layer, item_id, hue)

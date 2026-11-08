@@ -279,9 +279,14 @@ Clicking on her is a poke: she jumps away, then looks, glares, pouts, and after 
 pokes in a row she sulks, turned away, until the time runs out or she's put in something
 she loves. She calms down if left alone. She has opinions about the AI judge's score too,
 once its window is closed. She says what she thinks in a speech bubble (not in photos).
+She looks at items and colors the mouse is on when she loves them, and turns her nose up
+at ones she hates. Every minute or so she wants something: one of her favorite colors,
+a new item for a layer, or a new background. Give it to her and she's thrilled (something
+she hates doesn't count); keep her waiting and she gives up in a huff.
 - Select DollMood to set the words in item names she always "Loves" or "Hates" (every other
   item gets an opinion of its own that never changes), her "Favorite Hues", how often she
-  fidgets, how soon she gets bored and how long she sulks. Untick "Talks" for no bubbles.
+  fidgets, how soon she gets bored and how long she sulks. Untick "Talks" for no bubbles,
+  and "Demands" for no demands ("Demand Every" is how often she asks).
 - What she says is in LINES at the top of doll_mood.gd; add or change lines there.
 - Her faces and reactions are lists of slider values at the top of doll_mood.gd; change
   them to give her another personality. They use the Body menu's sliders plus Look across

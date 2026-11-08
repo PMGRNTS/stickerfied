@@ -38,6 +38,8 @@ func add_item(picture: Texture2D, id: String) -> Button:
 	newbutton.tooltip_text = item_label(id)
 	grid.add_child(newbutton)
 	newbutton.show_picture(picture)
+	newbutton.mouse_entered.connect(func(): SignalBus.dressup_hover_signal.emit(newbutton, layer, newbutton.item_id, -1.0))
+	newbutton.mouse_exited.connect(func(): SignalBus.dressup_hover_signal.emit(null, layer, "", -1.0))
 	if id.begins_with(GeneratedItems.ROOT):
 		newbutton.add_delete_button()
 	return newbutton
@@ -105,6 +107,8 @@ func add_color_swatches() -> void:
 		for state in ["normal", "hover", "pressed", "focus"]:
 			swatch.add_theme_stylebox_override(state, style)
 		swatch.pressed.connect(func(): SignalBus.dressup_color_signal.emit(layer, hue))
+		swatch.mouse_entered.connect(func(): SignalBus.dressup_hover_signal.emit(swatch, layer, "", hue))
+		swatch.mouse_exited.connect(func(): SignalBus.dressup_hover_signal.emit(null, layer, "", -1.0))
 		swatches.add_child(swatch)
 
 
