@@ -81,8 +81,9 @@ func generate_image(prompt: String, model: Dictionary, target_size: Vector2, ext
 
 # Asks a text model a question and expects a JSON object back.
 # picture is optional: an Image the model can look at (it needs a model that accepts images).
+# history is optional: the conversation so far, as [{"role": "user" or "assistant", "content": "..."}, ...]
 # Returns {"ok": true, "data": Dictionary, "cost": float or null} or {"ok": false, "error": "..."}
-func ask_json(model_id: String, instructions: String, question: String, picture: Image = null) -> Dictionary:
+func ask_json(model_id: String, instructions: String, question: String, picture: Image = null, history := []) -> Dictionary:
 	var content: Variant = question
 	if picture:
 		content = [
@@ -92,10 +93,8 @@ func ask_json(model_id: String, instructions: String, question: String, picture:
 		]
 	var body := {
 		"model": model_id,
-		"messages": [
-			{"role": "system", "content": instructions},
-			{"role": "user", "content": content},
-		],
+		"messages": [{"role": "system", "content": instructions}] + history
+			+ [{"role": "user", "content": content}],
 		"response_format": {"type": "json_object"},
 		"max_tokens": 1500,
 	}

@@ -11,7 +11,7 @@ Features:
 	Players can recolor items, reshape the doll, place stickers, undo/redo, randomize, save outfits, take photos,
 	share outfit codes, make new backgrounds, stickers and doll items with AI,
 	add their own drawings and photos to any menu,
-	and let an AI stylist dress the doll or judge the look (see "Extra features" below)
+	let an AI stylist dress the doll or judge the look, and chat with the doll (see "Extra features" below)
 
 Every layer (except backgrounds) has a row of color swatches that recolor the
 item: colorful parts take on the new hue, while black, white and gray parts
@@ -110,7 +110,7 @@ The screen is laid out in two parts: the doll on the left, and everything else i
 column on the right. At the top of the column are Undo, Redo, Random, Reset and sound;
 in the middle is the menu, with the category buttons down its left side (each labelled
 with its folder name without the number, so 03Hair shows "Hair") next to the items of
-the open category; at the bottom are Save, Outfits, Share, Photo, AI Create and AI Stylist.
+the open category; at the bottom are Save, Outfits, Share, Photo, AI Create, AI Stylist and Chat.
 Zoom is in the bottom left corner of the doll's side.
 
 Note that to change the background images/color of the menu or buttons, you
@@ -177,6 +177,7 @@ Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
   a pose for it first.
 - AI Create makes a new background, sticker or doll item from a description (see below)
 - AI Stylist dresses the doll for an occasion, or judges the outfit (see below)
+- Chat lets the player talk to the doll (see below)
 
 Stickers:
 The Stickers category button holds stickers: accessories that can be
@@ -457,6 +458,23 @@ Popups/AIStylistDialog in dress_up.tscn).
 - Judge me: a picture of the doll (without the menus) is sent to the model, which gives
   a score out of 10, a name for the look and a friendly tip.
 - The instructions given to the model can be edited in the Inspector too.
+
+Chat:
+The player can talk to the doll. She answers in character, in her speech bubble and in
+the chat window, with a face to match (she can light up, look smug, roll her eyes, pout,
+gasp, sulk, or forgive the player for poking her). She knows what she's wearing and what
+she thinks of it, what she's waiting for, how she feels, and the judge's last score.
+The window sits over the menu so she stays in sight; Chat or Close hides it again, and
+photos are taken without it. It uses the same OpenRouter key as AI Create and AI Stylist.
+- Settings (in the chat window) lets the player write her system prompt (who she is;
+  %s is her name) and pick any OpenRouter text model by name, such as
+  mistralai/mistral-small-3.2 (see https://openrouter.ai/models). They're remembered on
+  this device; Reset puts back the game's own, and Clear chat starts the conversation over.
+- Select Popups/DollChat in dress_up.tscn to set her "Doll Name", the default "Text Model"
+  (anthropic/claude-haiku-5.5), how many messages she remembers ("Memory"), and the default
+  "Chat Instructions". Change them along with doll_mood.gd to give her another personality.
+- The conversation is only kept until the game closes.
+- Without the DollMood node she still chats, but only in the window.
 
 Sounds:
 The game makes its own small sound effects (pop, click, shutter, sparkle) with code
