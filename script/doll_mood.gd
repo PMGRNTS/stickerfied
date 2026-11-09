@@ -479,9 +479,9 @@ static func _words(list:String) -> Array:
 # The mouse moved onto an item button or color swatch (control), or off one (control is null)
 func _on_hover(control, layer:String, item_id:String, hue:float) -> void:
 	eyeing = null
-	if control == null or not interactivity.outfit.has(layer) \
+	if control == null or not layer in interactivity.layers \
 			or (interactivity.is_required(layer) and not interactivity.is_background(layer)):
-		return # not a layer, or the doll's body
+		return # not a layer (such as the stickers), or the doll's body
 	var worn = interactivity.outfit[layer]
 	var opinion := 0
 	if item_id == "" and hue >= 0.0 and worn.item != "" and not is_equal_approx(hue, worn.hue):
