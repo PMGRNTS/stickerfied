@@ -44,6 +44,11 @@ const BodyControl = preload("res://script/body_control.gd")
 const BodySculpt = preload("res://script/body_sculpt.gd")
 const BodyFinder = preload("res://script/body_finder.gd")
 const BodySkeleton = preload("res://script/body_skeleton.gd")
+const BodyJoint = preload("res://script/body_joint.gd")
+const JointFinder = preload("res://script/joint_finder.gd")
+# Body pictures whose outline matches the one the skeleton was placed on this closely
+# (0 to 1) use the joints as placed; others have their joints found the first time they're worn
+const SAME_OUTLINE := 0.93
 # Where outfits keep the sculpt brush's pushes, among the sliders' values
 const SCULPT := "_sculpt"
 const FIT_FILE := "user://body_fit.json"
@@ -128,6 +133,9 @@ var fits := {} # body picture -> {control name: {"x", "y", "reach_x", "reach_y"}
 var body_item := "" # the body picture worn now, whose fit the controls show
 var pictures := {} # layer pictures (Texture2D -> Image), looked at by is_on_doll()
 var skeleton: BodySkeleton # the Skeleton node, or null for none
+var joints := [] # fit points on the skeleton's joints (body_joint.gd)
+var placed_on: Texture2D # the picture the controls and bones were placed on (the SpritePlaceholder's)
+var outlines := {} # body picture -> whether its outline matches placed_on's
 
 # Builds the grid over the doll's images. placeholder is the SpritePlaceholder
 # that marks where the doll is, and has one of its images.
@@ -143,7 +151,9 @@ func setup(doll_layers:Array, placeholder:Sprite2D) -> void:
 		if child is BodySkeleton:
 			skeleton = child
 			skeleton.collect()
-	for control in controls():
+			joints = BodyJoint.for_bones(skeleton.bones)
+	placed_on = placeholder.texture
+	for control in fit_points():
 		defaults[control.name] = [control.global_position, control.reach]
 	if FileAccess.file_exists(FIT_FILE):
 		var saved = JSON.parse_string(FileAccess.get_file_as_string(FIT_FILE))
@@ -155,6 +165,11 @@ func setup(doll_layers:Array, placeholder:Sprite2D) -> void:
 
 func controls() -> Array:
 	return get_children().filter(func(child): return child is BodyControl)
+
+# Everything players can fit to their doll in Fit points (see body_fitter.gd):
+# the controls, and the skeleton's joints (body_joint.gd), which fit the same way
+func fit_points() -> Array:
+	return controls() + joints
 
 # The skeleton's bones (body_bone.gd)
 func bones() -> Array:
@@ -370,7 +385,7 @@ func use_body(item_id:String) -> void:
 	_update()
 
 # Where the control goes as placed in the scene: [position, reach]
-func default_of(control:Node2D) -> Array:
+func default_of(control) -> Array:
 	return defaults.get(control.name, [control.global_position, control.reach])
 
 # Keeps where the controls are now as the fit for the body picture worn now
@@ -378,7 +393,7 @@ func default_of(control:Node2D) -> Array:
 func save_fit() -> void:
 	var fit := {}
 	var from_screen = to_screen.affine_inverse()
-	for control in controls():
+	for control in fit_points():
 		var placed = default_of(control)
 		if control.global_position.is_equal_approx(placed[0]) and control.reach.is_equal_approx(placed[1]):
 			continue
@@ -397,7 +412,8 @@ func save_fit() -> void:
 
 func _place_controls() -> void:
 	var fit = fits.get(body_item, {})
-	for control in controls():
+	var joints_fitted = false
+	for control in fit_points():
 		var placed = default_of(control)
 		control.global_position = placed[0]
 		control.reach = placed[1]
@@ -405,8 +421,45 @@ func _place_controls() -> void:
 		if moved is Dictionary:
 			control.global_position = to_screen * Vector2(float(moved.get("x", 0)), float(moved.get("y", 0)))
 			control.reach = Vector2(float(moved.get("reach_x", 1)), float(moved.get("reach_y", 1))).max(Vector2.ONE)
-		elif fit is Dictionary:
+			joints_fitted = joints_fitted or control in joints
+		elif fit is Dictionary and control is BodyControl:
 			_place_like_neighbor(control, fit)
+	# a body shaped differently from the one the bones were placed on, whose joints
+	# the player hasn't fitted, gets them found (only shown, not kept as its fit)
+	if not joints_fitted and not joints.is_empty() and not _outline_matches():
+		place_joints(true)
+
+# Whether the body picture worn now has about the same outline as the one the
+# controls and bones were placed on
+func _outline_matches() -> bool:
+	var picture = layers[0].texture if not layers.is_empty() else null
+	if picture == null or placed_on == null or picture == placed_on:
+		return true
+	if not outlines.has(picture):
+		outlines[picture] = _overlap(picture.get_image(), placed_on.get_image()) >= SAME_OUTLINE
+	return outlines[picture]
+
+# How much two pictures' solid parts overlap: 1 when they cover the same places, 0 when none
+static func _overlap(a:Image, b:Image) -> float:
+	if a == null or b == null:
+		return 0.0
+	var masks := []
+	for picture in [a, b]:
+		var image = picture.duplicate()
+		if image.is_compressed():
+			image.decompress()
+		image.convert(Image.FORMAT_RGBA8)
+		image.resize(40, 80, Image.INTERPOLATE_BILINEAR)
+		masks.append(image)
+	var both = 0
+	var either = 0
+	for y in 80:
+		for x in 40:
+			var in_a = masks[0].get_pixel(x, y).a > 0.3
+			var in_b = masks[1].get_pixel(x, y).a > 0.3
+			both += 1 if in_a and in_b else 0
+			either += 1 if in_a or in_b else 0
+	return float(both) / either if either > 0 else 1.0
 
 # A control the fit doesn't have (such as one added to the game after the player fitted
 # their doll) moves and grows along with one on the same landmark that the fit has,
@@ -461,7 +514,27 @@ func place_on_parts(find:bool) -> bool:
 		var share = default_of(control)[1] / biggest[Vector2i(control.landmark, control.shape)]
 		control.global_position = to_screen * (corner + found.at * pixel)
 		control.reach = (size * share).max(Vector2.ONE * 2.0)
+	place_joints(find)
 	return true
+
+# Puts the skeleton's joints on the body picture worn now (see joint_finder.gd): found in
+# its outline, or, without find, where they usually are on a doll standing straight.
+# Joints that don't say which joint they are stay where they are.
+func place_joints(find:bool) -> void:
+	if joints.is_empty() or layers.is_empty() or layers[0].texture == null:
+		return
+	var picture = layers[0].texture.get_image()
+	var found = JointFinder.find(picture) if find else JointFinder.standard(picture)
+	if found.is_empty():
+		return
+	var pixel = image_size / Vector2(picture.get_size()) # from the picture's pixels to a layer's
+	var corner = middle - image_size / 2
+	for point in joints:
+		if not found.has(point.which):
+			continue
+		point.global_position = to_screen * (corner + found[point.which].at * pixel)
+		var width = found[point.which].width * pixel.x * to_screen.get_scale().x / point.global_scale.x
+		point.reach = Vector2.ONE * maxf(width, 3.0)
 
 
 #####################################

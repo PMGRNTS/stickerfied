@@ -283,6 +283,10 @@ Left leg, Left knee, Right leg and Right knee sliders in the Body menu's Pose gr
   each setting). Each bone is drawn over the doll in the editor: a dot at its joint, a line to
   where it ends, and a box as wide as Width. Move them onto your own doll's joints.
   A bone's children hang from it: the forearm is under the upper arm, so it goes along.
+  A bone ends where the one bone hanging from it starts (the upper arm at the elbow);
+  one with nothing (or several bones) hanging from it ends at End (the forearm at the hand).
+- Joint and End Joint say which joint of the body a bone's joint and end are (Left Shoulder,
+  Left Hand...), so the game can find them on other dolls (see below).
 - Slider and Group name the bone's slider, and Turn is how far it turns (in degrees) with the
   slider all the way left (x) and right (y); more turns clockwise.
 - The Torso bone has no slider and never turns. Keep one like it along the middle of the body,
@@ -295,8 +299,21 @@ Left leg, Left knee, Right leg and Right knee sliders in the Body menu's Pose gr
 - Bones are turned after the other sliders, so a longer arm or a leaning body still turns at the
   right joints. Arms and legs drawn apart from the body (a hand on the hip leaves no gap
   to turn) give the cleanest results.
-- Fit points and Find parts don't move the bones yet: on a body picture shaped very
-  differently from the one the bones were placed on, move them in the editor.
+- The joints are points in Fit points too (orange): drag one onto the matching joint of the
+  doll (only that joint moves, not the bones hanging from it), and drag its square to make
+  the limb wider or narrower. Find parts puts every joint on the doll by itself and Standard
+  puts them where they usually are; Done keeps them with the rest of the fit.
+- Find parts looks at the body's outline (script/joint_finder.gd): going through the body
+  from the middle of the trunk, the parts that stick out furthest are the head, arms and legs.
+  The feet are the two lowest, the head the one with a big round end, and the arms the two
+  longest others. The shoulder or hip is where a limb gets about as wide as the trunk (the
+  hips are where the legs part), the elbow or knee about halfway to the hand or foot, and the
+  neck is the narrowest place between the head and the trunk. It works best on a doll with
+  its arms and legs apart from its body; fix up whatever it gets wrong by hand.
+- A body picture with a different outline from the one the bones were placed on (such as a
+  body made with AI or uploaded) gets its joints found the first time it's worn, unless the
+  player has fitted its joints already. Bodies with the same outline (the same body in
+  another color) use the joints as placed.
 
 Personality:
 The doll has a personality (script/doll_mood.gd, on the DollMood node): a bratty,
