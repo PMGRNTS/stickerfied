@@ -24,6 +24,7 @@
 [ext_resource type="Script" path="res://script/doll_mood.gd" id="21_mood"]
 [ext_resource type="Script" path="res://script/body_skeleton.gd" id="22_skeleton"]
 [ext_resource type="Script" path="res://script/body_bone.gd" id="23_bone"]
+[ext_resource type="PackedScene" path="res://GUI/doll_chat.tscn" id="24_chat"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -547,7 +548,7 @@ body_shaper = NodePath("../BodyShaper")
 ui_root = NodePath("../Menus/DressupMenu")
 sticker_stage = NodePath("../StickerStage")
 
-[node name="Toolbar" parent="Menus/DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "sticker_stage", "stage_zoom", "doll_mood") instance=ExtResource("9_toolbar")]
+[node name="Toolbar" parent="Menus/DressupMenu" node_paths=PackedStringArray("interactivity", "ui_root", "outfit_gallery", "share_dialog", "ai_create_dialog", "ai_stylist_dialog", "doll_chat", "sticker_stage", "stage_zoom", "doll_mood") instance=ExtResource("9_toolbar")]
 layout_mode = 1
 interactivity = NodePath("../../../Interactivity")
 ui_root = NodePath("..")
@@ -555,11 +556,16 @@ outfit_gallery = NodePath("../../../Popups/OutfitGallery")
 share_dialog = NodePath("../../../Popups/ShareDialog")
 ai_create_dialog = NodePath("../../../Popups/AICreateDialog")
 ai_stylist_dialog = NodePath("../../../Popups/AIStylistDialog")
+doll_chat = NodePath("../../../Popups/DollChat")
 sticker_stage = NodePath("../../../StickerStage")
 stage_zoom = NodePath("../../../StageZoom")
 doll_mood = NodePath("../../../DollMood")
 
 [node name="Popups" type="CanvasLayer" parent="."]
+
+[node name="DollChat" parent="Popups" node_paths=PackedStringArray("interactivity", "doll_mood") instance=ExtResource("24_chat")]
+interactivity = NodePath("../../Interactivity")
+doll_mood = NodePath("../../DollMood")
 
 [node name="OutfitGallery" parent="Popups" node_paths=PackedStringArray("interactivity") instance=ExtResource("10_gallery")]
 interactivity = NodePath("../../Interactivity")

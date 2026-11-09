@@ -8,6 +8,7 @@
 # Poking her (clicking on the doll) annoys her more each time, until she sulks: she turns
 # away for a while, and only something she loves makes up for it. She has opinions about
 # the AI judge's score too. She says what she thinks in a speech bubble.
+# The player can chat with her (see doll_chat.gd): she answers in her bubble with a face to match.
 # She looks at items and colors the mouse is on if she loves them, and turns her nose up at
 # ones she hates (ones she doesn't care about she ignores). Every minute or so she wants
 # something: a color, a new item for a layer or a new background. She waits a while for it,
@@ -70,6 +71,8 @@ const POKES_TO_SULK := 4
 # How long a speech bubble shows: at least BUBBLE_TIME seconds, longer for longer lines
 const BUBBLE_TIME := 1.4
 const BUBBLE_TIME_PER_LETTER := 0.06
+# Lines wider than this wrap onto more lines, in pixels
+const BUBBLE_WIDTH := 260.0
 # The bubble's tail: how far its panel is from the doll's head, across and up
 const BUBBLE_TAIL := Vector2(18, 16)
 # How long she waits for what she asked for, in seconds
@@ -151,6 +154,7 @@ var last_outfit := {}
 var annoyed := 0.0 # how annoyed pokes made her, 0 to POKES_TO_SULK
 var sulking := 0.0 # seconds of sulking left
 var score_waiting := [] # [score, best, window] from the judge, until its window is closed
+var last_score := [] # [score, best]: what the judge gave her last
 var eyeing: Control = null # the item button or color swatch the mouse is on, if she cares about it
 var eyeing_opinion := 0 # 1 if she loves what she's eyeing, -1 if she hates it
 var gaze_face := {} # the face she makes at what she's eyeing, or {} when she isn't looking at anything
@@ -165,6 +169,7 @@ var bubble_panel: PanelContainer
 var bubble_tween: Tween
 var bubble_flipped := false # true when the bubble is on the head's left, to stay on the screen
 var last_line := ""
+var quiet_until := 0.0 # her chat answer stays in the bubble until then (in seconds since the game started)
 
 func _ready() -> void:
 	interactivity.outfit_changed.connect(_on_outfit_changed)
@@ -230,6 +235,7 @@ func pose_for_photo() -> void:
 # She reacts once window (the judge's, which hides her) is closed.
 func react_to_score(score:int, best:int, window:Control = null) -> void:
 	score_waiting = [score, best, window]
+	last_score = [score, best]
 
 # She holds still while the player arranges stickers (their frames don't follow her poses),
 # fits the doll or sculpts it
@@ -589,20 +595,109 @@ static func _layer_name(layer:String) -> String:
 
 
 #####################################
+############## CHAT #################
+#####################################
+
+# The feelings a chat answer can have (see answer())
+const FEELINGS := ["love", "smug", "not_sure", "annoyed", "bored", "shocked", "pout", "sulk", "forgive", "neutral"]
+
+# The player said something to her in the chat: she looks at them while she thinks of an answer
+func listen() -> void:
+	idle = 0.0
+	if last_outfit.is_empty() or _holding_still() or sulking > 0.0:
+		return
+	_play([_step(SIDE_EYE, 0.15, true, 2.5)] + _rest())
+
+# She answers the player in her bubble, with a face for feeling (one of FEELINGS)
+func answer(text:String, feeling:String) -> void:
+	idle = 0.0
+	if talks and bubble != null and text != "":
+		_show_bubble(text)
+		quiet_until = Time.get_ticks_msec() / 1000.0 + BUBBLE_TIME + BUBBLE_TIME_PER_LETTER * len(text)
+	if last_outfit.is_empty() or _holding_still():
+		return
+	match feeling:
+		"love":
+			sulking = 0.0
+			_play([_step(LOVE, 0.18, true, 0.15), _step(LOVE_HOLD, 0.25, false, 1.3)] + _rest())
+			Sfx.play("sparkle")
+		"forgive":
+			sulking = 0.0
+			_play([_step(NOT_BAD, 0.3, false, 1.0)] + _rest())
+		"sulk":
+			_play(_sulk())
+		_ when sulking > 0.0:
+			_play([_step(SULK, 0.2, true)]) # still mad
+		"smug":
+			_play([_step(SMUG, 0.2, true, 1.8)] + _rest())
+		"not_sure":
+			_play([_step(LOOK_DOWN, 0.25, false, 0.35), _step(NOT_BAD, 0.3, false, 0.9)] + _rest())
+		"annoyed":
+			_play(_eye_roll() + _rest())
+		"bored":
+			_play(_sigh() + _rest())
+		"shocked":
+			_play([_step(GASP, 0.12, true, 0.6)] + _rest())
+		"pout":
+			_play([_step(POUT, 0.16, true, 1.4)] + _rest())
+		_:
+			_play(_hair_flick())
+
+# 1 if she loves an item in that color, -1 if she hates it, 0 if she isn't sure
+func opinion_of(layer:String, item:String, hue:float) -> int:
+	return _opinion(layer, item, hue)
+
+# What she likes and how she feels right now, as lines for the chat's model (talking to her as "you")
+func describe_for_chat() -> Array:
+	var lines := []
+	lines.append("You love anything with these words in its name: %s. You hate: %s." % [loves, hates])
+	lines.append("Your favorite colors: %s." % ", ".join(favorite_hues.map(_color_name)))
+	if sulking > 0.0:
+		lines.append("You are sulking because the player kept poking you. Stay cold and short " \
+			+ "unless they apologize nicely or say something really sweet; then you forgive them.")
+	elif annoyed >= 1.0:
+		lines.append("The player just poked you, and you hate being poked.")
+	if idle > bored_after:
+		lines.append("Nobody has changed your outfit for a while, so you're bored.")
+	match demand.get("kind"):
+		"color":
+			lines.append("You want to wear something %s, and you're waiting for it." % demand.name)
+		"layer":
+			lines.append("You want a new %s, and you're waiting for it." % demand.name)
+		"background":
+			lines.append("You want a new background, and you're waiting for it.")
+	if not last_score.is_empty():
+		lines.append("The fashion judge gave your look %d out of %d." % last_score)
+	return lines
+
+
+#####################################
 ############## SPEECH BUBBLE ########
 #####################################
 
 # Says a line of this kind from LINES, with value filled in for its %d or %s
 func _say(kind:String, value = null) -> void:
-	if not talks or bubble == null:
+	if not talks or bubble == null or Time.get_ticks_msec() / 1000.0 < quiet_until:
 		return
 	var lines = Array(LINES.get(kind, [])).filter(func(line): return line != last_line)
 	if lines.is_empty():
 		return
 	last_line = lines.pick_random()
+	var text = last_line % value if value != null and last_line.contains("%") else last_line
+	_show_bubble(text[0].to_upper() + text.substr(1))
+
+# Pops the bubble up with text, and fades it out after a while (longer for longer text)
+func _show_bubble(text:String) -> void:
 	var label: Label = bubble_panel.get_child(0)
-	label.text = last_line % value if value != null and last_line.contains("%") else last_line
-	label.text = label.text[0].to_upper() + label.text.substr(1)
+	label.text = text
+	# long lines wrap (the panel grows to their height on the next frame, while it fades in)
+	label.autowrap_mode = TextServer.AUTOWRAP_OFF
+	label.custom_minimum_size.x = 0.0
+	if label.get_minimum_size().x > BUBBLE_WIDTH:
+		label.custom_minimum_size.x = BUBBLE_WIDTH
+		label.size = Vector2(BUBBLE_WIDTH, 0.0)
+		label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	label.update_minimum_size()
 	bubble_panel.reset_size()
 	bubble.show()
 	_place_bubble()

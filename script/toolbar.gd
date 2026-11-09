@@ -1,5 +1,5 @@
 # The tool buttons around the menu: undo/redo, random, reset, zoom,
-# save, saved outfits, share codes, photo, AI Create and AI Stylist.
+# save, saved outfits, share codes, photo, AI Create, AI Stylist and Chat.
 # Move or restyle the buttons in GUI/toolbar.tscn.
 
 extends Control
@@ -11,6 +11,8 @@ extends Control
 @export var share_dialog: OverlayDialog
 @export var ai_create_dialog: OverlayDialog
 @export var ai_stylist_dialog: OverlayDialog
+# Talk to the doll (see doll_chat.gd)
+@export var doll_chat: OverlayDialog
 # Its selection frame is hidden while taking a photo
 @export var sticker_stage: Node2D
 # Zooms in on the doll (see stage_zoom.gd); photos are taken zoomed out
@@ -35,6 +37,10 @@ func _ready() -> void:
 	%PhotoButton.pressed.connect(take_photo)
 	%AIButton.pressed.connect(ai_create_dialog.open)
 	%StylistButton.pressed.connect(ai_stylist_dialog.open)
+	if doll_chat:
+		%ChatButton.pressed.connect(func(): doll_chat.close() if doll_chat.visible else doll_chat.open())
+	else:
+		%ChatButton.hide()
 	interactivity.outfit_changed.connect(_update_buttons)
 	if stage_zoom:
 		%ZoomInButton.pressed.connect(stage_zoom.zoom_in)
@@ -84,16 +90,21 @@ func show_message(text: String) -> void:
 	toast_tween.tween_callback(%Toast.hide)
 
 
-# Takes a picture of the doll and background, without the menus, zoomed out
+# Takes a picture of the doll and background, without the menus or the chat, zoomed out
 func capture_scene() -> Image:
 	sticker_stage.deselect()
 	ui_root.hide()
+	var chatting = doll_chat != null and doll_chat.visible
+	if chatting:
+		doll_chat.hide()
 	var view = get_viewport().canvas_transform
 	get_viewport().canvas_transform = Transform2D()
 	await RenderingServer.frame_post_draw
 	var image = get_viewport().get_texture().get_image()
 	get_viewport().canvas_transform = view
 	ui_root.show()
+	if chatting:
+		doll_chat.show()
 	return image
 
 func save_outfit() -> void:

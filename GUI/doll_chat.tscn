@@ -1,0 +1,215 @@
+[gd_scene format=3]
+
+[ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="0_theme"]
+[ext_resource type="Script" path="res://script/doll_chat.gd" id="1_script"]
+[ext_resource type="Script" path="res://script/openrouter_client.gd" id="2_client"]
+
+[node name="DollChat" type="Control"]
+visible = false
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+theme = ExtResource("0_theme")
+script = ExtResource("1_script")
+
+[node name="Panel" type="PanelContainer" parent="."]
+layout_mode = 1
+anchors_preset = 11
+anchor_left = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+offset_left = -340.0
+offset_top = 54.0
+offset_right = -12.0
+offset_bottom = -94.0
+grow_horizontal = 0
+grow_vertical = 2
+
+[node name="Margin" type="MarginContainer" parent="Panel"]
+layout_mode = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 12
+
+[node name="Content" type="VBoxContainer" parent="Panel/Margin"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="TitleRow" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="Title" type="Label" parent="Panel/Margin/Content/TitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_font_sizes/font_size = 20
+text = "Chat with Coco"
+text_overrun_behavior = 3
+
+[node name="SettingsToggle" type="Button" parent="Panel/Margin/Content/TitleRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 4
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+toggle_mode = true
+tooltip_text = "Change what she is told before you chat (her system prompt), and which OpenRouter model answers."
+text = "Settings"
+
+[node name="Log" type="ScrollContainer" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
+
+[node name="Messages" type="VBoxContainer" parent="Panel/Margin/Content/Log"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+theme_override_constants/separation = 6
+
+[node name="SettingsBox" type="VBoxContainer" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+size_flags_vertical = 3
+theme_override_constants/separation = 6
+
+[node name="PromptHint" type="Label" parent="Panel/Margin/Content/SettingsBox"]
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+text = "What she is told before you chat (her system prompt). %s is her name. The game adds what she's wearing and how she feels."
+autowrap_mode = 3
+
+[node name="PromptEdit" type="TextEdit" parent="Panel/Margin/Content/SettingsBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(0, 80)
+layout_mode = 2
+size_flags_vertical = 3
+wrap_mode = 1
+
+[node name="ModelRow" type="HBoxContainer" parent="Panel/Margin/Content/SettingsBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ModelLabel" type="Label" parent="Panel/Margin/Content/SettingsBox/ModelRow"]
+layout_mode = 2
+text = "Model"
+
+[node name="ModelEdit" type="LineEdit" parent="Panel/Margin/Content/SettingsBox/ModelRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+tooltip_text = "The OpenRouter text model she answers with, such as anthropic/claude-haiku-5.5 (see https://openrouter.ai/models)."
+clear_button_enabled = true
+
+[node name="ModelsLink" type="LinkButton" parent="Panel/Margin/Content/SettingsBox/ModelRow"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Models"
+uri = "https://openrouter.ai/models"
+
+[node name="SettingsButtons" type="HBoxContainer" parent="Panel/Margin/Content/SettingsBox"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="ResetButton" type="Button" parent="Panel/Margin/Content/SettingsBox/SettingsButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+tooltip_text = "Puts back the game's own prompt and model."
+text = "Reset"
+
+[node name="ClearButton" type="Button" parent="Panel/Margin/Content/SettingsBox/SettingsButtons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+theme_type_variation = &"ToolButton"
+tooltip_text = "Forgets the conversation, so she starts fresh."
+text = "Clear chat"
+
+[node name="Typing" type="Label" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+visible = false
+modulate = Color(1, 1, 1, 0.6)
+layout_mode = 2
+text = "Coco is typing..."
+
+[node name="StatusLabel" type="Label" parent="Panel/Margin/Content"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(280, 0)
+layout_mode = 2
+autowrap_mode = 3
+
+[node name="SendRow" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="MessageEdit" type="LineEdit" parent="Panel/Margin/Content/SendRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Say something to Coco..."
+max_length = 300
+keep_editing_on_text_submit = true
+
+[node name="SendButton" type="Button" parent="Panel/Margin/Content/SendRow"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(60, 32)
+layout_mode = 2
+theme_type_variation = &"ToolButton"
+text = "Send"
+
+[node name="Separator" type="HSeparator" parent="Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="KeyRow" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="KeyLabel" type="Label" parent="Panel/Margin/Content/KeyRow"]
+layout_mode = 2
+text = "API key"
+
+[node name="KeyEdit" type="LineEdit" parent="Panel/Margin/Content/KeyRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "sk-or-..."
+secret = true
+clear_button_enabled = true
+
+[node name="GetKeyLink" type="LinkButton" parent="Panel/Margin/Content/KeyRow"]
+layout_mode = 2
+size_flags_vertical = 4
+text = "Get a key"
+uri = "https://openrouter.ai/keys"
+
+[node name="Buttons" type="HBoxContainer" parent="Panel/Margin/Content"]
+layout_mode = 2
+
+[node name="RememberKey" type="CheckBox" parent="Panel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+button_pressed = true
+text = "Remember my key"
+
+[node name="CloseButton" type="Button" parent="Panel/Margin/Content/Buttons"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+theme_type_variation = &"ToolButton"
+text = "Close"
+
+[node name="OpenRouterClient" type="Node" parent="."]
+script = ExtResource("2_client")
