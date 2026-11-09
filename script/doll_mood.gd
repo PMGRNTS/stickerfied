@@ -78,7 +78,7 @@ const DEMAND_TIME := 30.0
 # Sliders that turn or look to one side
 const SIDED := ["Lean", "Head tilt", "Look across"]
 
-# Weight on one hip, a hand on the other, head tilted back, half-lidded and unimpressed.
+# Weight on one hip, the other elbow bent towards it, head tilted back, half-lidded and unimpressed.
 # The arm and leg sliders (the Skeleton's bones) aren't in SIDED: they stay on their own side.
 const RESTING := {"Lean": 0.4, "Head tilt": -0.3, "Squint": 0.3, "Smile": -0.1, "Right arm": 0.25, "Right elbow": -1.0}
 const SIDE_EYE := {"Lean": 0.4, "Head tilt": -0.2, "Squint": 0.45, "Smile": -0.15, "Look across": 0.9, "Right arm": 0.25, "Right elbow": -1.0}
@@ -97,7 +97,7 @@ const POUT := {"Lean": -0.3, "Head tilt": -0.6, "Look across": -0.9, "Squint": 0
 const GASP := {"Lean": -0.4, "Head tilt": 0.1, "Eye size": 0.4, "Mouth size": 0.5, "Smile": -0.3, "Squint": -0.3, "Left elbow": 0.6, "Right arm": 0.2, "Right elbow": -0.5}
 const PHOTO := {"Lean": 0.65, "Head tilt": -0.45, "Squint": 0.35, "Smile": 0.3, "Smirk": 0.8, "Eye size": 0.1, "Look across": -0.15, "Right arm": 0.45, "Right elbow": -0.4, "Left leg": 0.3}
 const SMUG := {"Lean": 0.6, "Head tilt": -0.5, "Squint": 0.5, "Smile": 0.2, "Smirk": 0.9, "Look across": -0.3, "Right arm": 0.25, "Right elbow": -1.0}
-# Turned away, arms dropped, instead of RESTING while she sulks
+# Turned away, arms in close, instead of RESTING while she sulks
 const SULK := {"Lean": -0.35, "Head tilt": -0.45, "Look across": -1.0, "Squint": 0.45, "Smile": -0.45, "Cheeks": 0.25, "Right arm": -0.5, "Left arm": -0.3}
 # For pokes these are turned towards the side she is poked from, not her hip:
 # she jumps away from the poke, then looks back at whoever did it
@@ -479,9 +479,9 @@ static func _words(list:String) -> Array:
 # The mouse moved onto an item button or color swatch (control), or off one (control is null)
 func _on_hover(control, layer:String, item_id:String, hue:float) -> void:
 	eyeing = null
-	if control == null or not interactivity.outfit.has(layer) \
+	if control == null or not layer in interactivity.layers \
 			or (interactivity.is_required(layer) and not interactivity.is_background(layer)):
-		return # not a layer, or the doll's body
+		return # not a layer (such as the stickers), or the doll's body
 	var worn = interactivity.outfit[layer]
 	var opinion := 0
 	if item_id == "" and hue >= 0.0 and worn.item != "" and not is_equal_approx(hue, worn.hue):

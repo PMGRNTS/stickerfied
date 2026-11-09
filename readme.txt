@@ -288,7 +288,9 @@ Left leg, Left knee, Right leg and Right knee sliders in the Body menu's Pose gr
 - Joint and End Joint say which joint of the body a bone's joint and end are (Left Shoulder,
   Left Hand...), so the game can find them on other dolls (see below).
 - Slider and Group name the bone's slider, and Turn is how far it turns (in degrees) with the
-  slider all the way left (x) and right (y); more turns clockwise.
+  slider all the way left (x) and right (y); more turns clockwise. Keep turns small (the
+  example's are 25 degrees at most): the doll is one flat picture, so nothing was drawn
+  under an arm held against the body, and turning it far stretches the picture to fill in.
 - The Torso bone has no slider and never turns. Keep one like it along the middle of the body,
   wide enough to cover it: the head and body go with it, so they stay put while the limbs turn.
 - Which parts of the doll go with which bone is worked out from the body picture (the first
@@ -299,6 +301,10 @@ Left leg, Left knee, Right leg and Right knee sliders in the Body menu's Pose gr
 - Bones are turned after the other sliders, so a longer arm or a leaning body still turns at the
   right joints. Arms and legs drawn apart from the body (a hand on the hip leaves no gap
   to turn) give the cleanest results.
+- Where the doll's grid reaches across empty space between parts that turn differently
+  (between the legs, or an arm drawn apart from the body), it tears instead of stretching,
+  so the gap opens cleanly (body_skeleton.gd's tear()). A layer drawn across the gap, such
+  as a skirt between the legs, stays whole there and bends like cloth.
 - The joints are points in Fit points too (orange): drag one onto the matching joint of the
   doll (only that joint moves, not the bones hanging from it), and drag its square to make
   the limb wider or narrower. Find parts puts every joint on the doll by itself and Standard
@@ -317,7 +323,7 @@ Left leg, Left knee, Right leg and Right knee sliders in the Body menu's Pose gr
 
 Personality:
 The doll has a personality (script/doll_mood.gd, on the DollMood node): a bratty,
-high-maintenance girl. She stands with her weight on one hip and a hand on the other, looking unimpressed, shifts
+high-maintenance girl. She stands with her weight on one hip and an elbow bent towards the other, looking unimpressed, shifts
 her hips, gives side-eye and flicks her hair, and rolls her eyes and sighs when she's bored.
 She loves some items and colors and hates others: she lights up, looks things up and down,
 or pauses, rolls her eyes and pouts, and gets impatient if things change too fast.
