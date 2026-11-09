@@ -204,6 +204,8 @@ Body shaping:
 The Body menu (the last category button) has sliders that reshape the doll:
 head size, shoulders, waist, hips, legs and height, eye size, eye spacing,
 mouth size, mouth height, cheeks, squint, smile and smirk, and a head tilt and lean to pose it.
+The Pose sliders also turn the arms at the shoulders and elbows and the legs at the hips and
+knees (see Skeleton below).
 The doll blinks and breathes, and long hair swings when the doll moves.
 Every layer bends the same way, so the hair, face and clothes still fit, and
 stickers bend with the part of the doll they are on: a sticker on the waist gets wider
@@ -273,9 +275,49 @@ The shape is saved with outfits and included in share codes, and Random leaves i
 - New controls that a player's fit doesn't have yet follow a fitted control on the same
   Landmark, so they land on the right part of the doll without fitting again.
 
+Skeleton:
+The arms and legs turn at their joints, with the Left arm, Left elbow, Right arm, Right elbow,
+Left leg, Left knee, Right leg and Right knee sliders in the Body menu's Pose group
+(left and right as seen on the screen). Every layer and sticker on a turned arm or leg goes with it.
+- The bones are under BodyShaper > Skeleton in dress_up.tscn (script/body_bone.gd explains
+  each setting). Each bone is drawn over the doll in the editor: a dot at its joint, a line to
+  where it ends, and a box as wide as Width. Move them onto your own doll's joints.
+  A bone's children hang from it: the forearm is under the upper arm, so it goes along.
+  A bone ends where the one bone hanging from it starts (the upper arm at the elbow);
+  one with nothing (or several bones) hanging from it ends at End (the forearm at the hand).
+- Joint and End Joint say which joint of the body a bone's joint and end are (Left Shoulder,
+  Left Hand...), so the game can find them on other dolls (see below).
+- Slider and Group name the bone's slider, and Turn is how far it turns (in degrees) with the
+  slider all the way left (x) and right (y); more turns clockwise.
+- The Torso bone has no slider and never turns. Keep one like it along the middle of the body,
+  wide enough to cover it: the head and body go with it, so they stay put while the limbs turn.
+- Which parts of the doll go with which bone is worked out from the body picture (the first
+  layer after the backgrounds): each part goes with the bone it is nearest to going through
+  the doll, so a hand held near the head still goes with its arm. Everything within a bone's
+  Width goes fully with it, and where two parts meet they bend smoothly from one to the other.
+  Hair, clothes and stickers that stick out past the body go with the nearest part of the body.
+- Bones are turned after the other sliders, so a longer arm or a leaning body still turns at the
+  right joints. Arms and legs drawn apart from the body (a hand on the hip leaves no gap
+  to turn) give the cleanest results.
+- The joints are points in Fit points too (orange): drag one onto the matching joint of the
+  doll (only that joint moves, not the bones hanging from it), and drag its square to make
+  the limb wider or narrower. Find parts puts every joint on the doll by itself and Standard
+  puts them where they usually are; Done keeps them with the rest of the fit.
+- Find parts looks at the body's outline (script/joint_finder.gd): going through the body
+  from the middle of the trunk, the parts that stick out furthest are the head, arms and legs.
+  The feet are the two lowest, the head the one with a big round end, and the arms the two
+  longest others. The shoulder or hip is where a limb gets about as wide as the trunk (the
+  hips are where the legs part), the elbow or knee about halfway to the hand or foot, and the
+  neck is the narrowest place between the head and the trunk. It works best on a doll with
+  its arms and legs apart from its body; fix up whatever it gets wrong by hand.
+- A body picture with a different outline from the one the bones were placed on (such as a
+  body made with AI or uploaded) gets its joints found the first time it's worn, unless the
+  player has fitted its joints already. Bodies with the same outline (the same body in
+  another color) use the joints as placed.
+
 Personality:
 The doll has a personality (script/doll_mood.gd, on the DollMood node): a bratty,
-high-maintenance girl. She stands with her weight on one hip looking unimpressed, shifts
+high-maintenance girl. She stands with her weight on one hip and a hand on the other, looking unimpressed, shifts
 her hips, gives side-eye and flicks her hair, and rolls her eyes and sighs when she's bored.
 She loves some items and colors and hates others: she lights up, looks things up and down,
 or pauses, rolls her eyes and pouts, and gets impatient if things change too fast.

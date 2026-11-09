@@ -22,6 +22,8 @@
 [ext_resource type="Script" path="res://script/body_sculptor.gd" id="19_sculptor"]
 [ext_resource type="Script" path="res://script/stage_zoom.gd" id="20_zoom"]
 [ext_resource type="Script" path="res://script/doll_mood.gd" id="21_mood"]
+[ext_resource type="Script" path="res://script/body_skeleton.gd" id="22_skeleton"]
+[ext_resource type="Script" path="res://script/body_bone.gd" id="23_bone"]
 
 [node name="DressUp" type="Node" unique_id=969461706]
 script = ExtResource("1_218i8")
@@ -447,6 +449,89 @@ stretch = Vector2(0, 0)
 turn = 10.0
 soft_edge = 0.4
 landmark = 12
+
+[node name="Skeleton" type="Node2D" parent="BodyShaper"]
+script = ExtResource("22_skeleton")
+
+[node name="Torso" type="Node2D" parent="BodyShaper/Skeleton"]
+position = Vector2(286, 326)
+script = ExtResource("23_bone")
+end = Vector2(-10, -180)
+width = 45.0
+joint = 1
+end_joint = 2
+
+[node name="LeftUpperArm" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
+position = Vector2(-60, -96)
+script = ExtResource("23_bone")
+slider = "Left arm"
+turn = Vector2(-60, 30)
+width = 14.0
+joint = 3
+
+[node name="LeftForearm" type="Node2D" parent="BodyShaper/Skeleton/Torso/LeftUpperArm"]
+position = Vector2(-50, 8)
+script = ExtResource("23_bone")
+slider = "Left elbow"
+turn = Vector2(-100, 60)
+end = Vector2(0, -65)
+width = 13.0
+joint = 4
+end_joint = 5
+
+[node name="RightUpperArm" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
+position = Vector2(33, -155)
+script = ExtResource("23_bone")
+slider = "Right arm"
+turn = Vector2(15, -100)
+width = 13.0
+joint = 6
+
+[node name="RightForearm" type="Node2D" parent="BodyShaper/Skeleton/Torso/RightUpperArm"]
+position = Vector2(50, 87)
+script = ExtResource("23_bone")
+slider = "Right elbow"
+turn = Vector2(110, -90)
+end = Vector2(14, 68)
+width = 12.0
+joint = 7
+end_joint = 8
+
+[node name="LeftThigh" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
+position = Vector2(-25, 45)
+script = ExtResource("23_bone")
+slider = "Left leg"
+turn = Vector2(-15, 30)
+width = 20.0
+joint = 9
+
+[node name="LeftShin" type="Node2D" parent="BodyShaper/Skeleton/Torso/LeftThigh"]
+position = Vector2(-33, 95)
+script = ExtResource("23_bone")
+slider = "Left knee"
+turn = Vector2(-35, 35)
+end = Vector2(-29, 85)
+width = 16.0
+joint = 10
+end_joint = 11
+
+[node name="RightThigh" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
+position = Vector2(25, 45)
+script = ExtResource("23_bone")
+slider = "Right leg"
+turn = Vector2(15, -30)
+width = 20.0
+joint = 12
+
+[node name="RightShin" type="Node2D" parent="BodyShaper/Skeleton/Torso/RightThigh"]
+position = Vector2(5, 95)
+script = ExtResource("23_bone")
+slider = "Right knee"
+turn = Vector2(-35, 35)
+end = Vector2(0, 85)
+width = 16.0
+joint = 13
+end_joint = 14
 
 [node name="BodyFitter" type="Node2D" parent="." node_paths=PackedStringArray("body_shaper", "ui_root", "sticker_stage")]
 unique_name_in_owner = true

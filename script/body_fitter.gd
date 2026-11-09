@@ -7,9 +7,12 @@
 #   - drag the point's circle, or anywhere inside its area, onto the matching part of the doll
 #     (the arrow keys nudge it, more with Shift)
 #   - drag the small square at its corner, or turn the mouse wheel, to make its area bigger or smaller
+#   - the skeleton's joints (orange, see body_joint.gd) are points too: moving one moves only
+#     that joint, and its square sets how wide the limb is
 #   - Find parts puts the points on the parts the game finds in the doll's pictures, and
 #     Standard where they usually are on a doll standing straight and facing forward
-#     (see body_finder.gd; only controls with a Landmark move)
+#     (see body_finder.gd and joint_finder.gd; only controls with a Landmark, and joints
+#     that say which joint they are, move)
 #   - Done keeps the fit for the body picture worn now (each body has its own, see
 #     body_shaper.gd), Reset puts the controls back where the game placed them,
 #     and Cancel (or Escape) forgets the changes
@@ -32,6 +35,7 @@ const GRAB_MOUSE := 4.0
 const GRAB_TOUCH := 14.0
 const COLOR := Color(0.2, 0.33, 0.85)
 const SWING_COLOR := Color(0.2, 0.6, 0.4)
+const JOINT_COLOR := Color(0.85, 0.45, 0.05)
 const LABEL_SIZE := 11
 const HINT := "Drag the circle onto the matching part of your doll, and the square to resize it. Tap a dot to fit another point."
 # How much one turn of the mouse wheel resizes
@@ -99,7 +103,7 @@ func start() -> void:
 	sticker_stage.hide()
 	bar.show()
 	hint.text = HINT
-	before = body_shaper.controls().map(func(control): return [control.global_position, control.reach])
+	before = body_shaper.fit_points().map(func(control): return [control.global_position, control.reach])
 	_group()
 	_choose(0)
 
@@ -108,7 +112,7 @@ func _group() -> void:
 	var was = spots[chosen].controls[0] if chosen < len(spots) else null
 	var by_spot := {}
 	spots = []
-	for control in body_shaper.controls():
+	for control in body_shaper.fit_points():
 		var spot = Vector2i(control.global_position.round())
 		var key = Vector3i(spot.x, spot.y, control.landmark)
 		if not by_spot.has(key):
@@ -118,7 +122,8 @@ func _group() -> void:
 	for spot in spots:
 		var names := []
 		for control in spot.controls:
-			var name_shown = control.slider if control.slider != "" and control.group != "" else String(control.name).capitalize()
+			var name_shown = control.label if "label" in control else \
+				control.slider if control.slider != "" and control.group != "" else String(control.name).capitalize()
 			if not name_shown in names:
 				names.append(name_shown)
 		spot.label = ", ".join(names)
@@ -140,7 +145,7 @@ func _finish(keep:bool) -> void:
 	if keep:
 		body_shaper.save_fit()
 	else:
-		var controls = body_shaper.controls()
+		var controls = body_shaper.fit_points()
 		for i in len(controls):
 			controls[i].global_position = before[i][0]
 			controls[i].reach = before[i][1]
@@ -163,7 +168,7 @@ func _place(find:bool) -> void:
 
 # Puts every control back where the game placed it
 func _reset() -> void:
-	for control in body_shaper.controls():
+	for control in body_shaper.fit_points():
 		var placed = body_shaper.default_of(control)
 		control.global_position = placed[0]
 		control.reach = placed[1]
@@ -182,18 +187,23 @@ static func _corner(spot:Dictionary) -> Vector2:
 	return _middle(spot) + biggest
 
 # Whether point is inside the control's oval, strip or turn band
-static func _inside(control:Node2D, point:Vector2) -> bool:
+static func _inside(control, point:Vector2) -> bool:
 	var away = (point - control.global_position) / control.reach.max(Vector2.ONE)
 	return away.length() < 1.0 if control.shape == BodyControl.Shape.AREA else absf(away.x) < 1.0 and absf(away.y) < 1.0
 
 # What a press at point catches: [spot index, Drag], or [-1, NONE] for nothing.
-# The chosen spot's square and circle come first, then the other dots,
+# The chosen spot's square and circle come first (whichever is nearer, when they are
+# close together, as on a thin limb's joint), then the other dots,
 # then anywhere inside the chosen spot's areas.
 func _spot_at(point:Vector2) -> Array:
 	if chosen < len(spots):
-		if point.distance_to(_corner(spots[chosen])) <= CORNER_SIZE + grab:
+		var to_corner = point.distance_to(_corner(spots[chosen]))
+		var to_middle = point.distance_to(_middle(spots[chosen]))
+		var on_corner = to_corner <= CORNER_SIZE + grab
+		var on_middle = to_middle <= HANDLE_RADIUS + grab
+		if on_corner and (not on_middle or to_corner < to_middle):
 			return [chosen, Drag.RESIZE]
-		if point.distance_to(_middle(spots[chosen])) <= HANDLE_RADIUS + grab:
+		if on_middle:
 			return [chosen, Drag.MOVE]
 	var best = -1
 	var nearest = INF
@@ -299,6 +309,8 @@ func _draw() -> void:
 		_draw_label(hovered, taken)
 
 static func _color(spot:Dictionary) -> Color:
+	if spot.controls.any(func(control): return "label" in control):
+		return JOINT_COLOR
 	return SWING_COLOR if spot.controls.any(func(control): return control.swing > 0.0) else COLOR
 
 # Names a spot beside its point: on the right, or else left, above or below it,
