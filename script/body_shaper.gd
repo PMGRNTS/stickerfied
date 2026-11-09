@@ -590,13 +590,27 @@ func _build_grid() -> void:
 		rest.append(corner + uv * image_size)
 		colors.append(Color.WHITE)
 	var triangles = Geometry2D.triangulate_delaunay(rest)
+	# the grid tears between parts that turn differently, such as the legs (see body_skeleton.gd)
+	var mends := []
+	if skeleton:
+		var body_picture = layers[0].texture if not layers.is_empty() else null
+		skeleton.build(body_picture, corner, image_size, to_screen)
+		var on_screen = rest.duplicate()
+		for i in len(rest):
+			on_screen[i] = to_screen * rest[i]
+		var torn = skeleton.tear(on_screen, triangles)
+		for i in torn[0]:
+			rest.append(rest[i])
+			uvs.append(uvs[i])
+			colors.append(Color.WHITE)
+		triangles = torn[1]
+		for mend in torn[2]:
+			mends.append([mend[0], mend[1], (from_screen * mend[2] - corner) / image_size])
 	for layer in layers:
 		layer.uvs = uvs
 		layer.colors = colors
 		layer.triangles = triangles
-	if skeleton:
-		var body_picture = layers[0].texture if not layers.is_empty() else null
-		skeleton.build(body_picture, corner, image_size, to_screen)
+		layer.mends = mends
 	_find_swings()
 
 
@@ -639,17 +653,18 @@ func _active(closed := 0.0, inhaled := 0.0, face := {}) -> Array:
 			active.append([skeleton, 1.0, moves])
 	return active
 
-func _shaped(point:Vector2, active:Array) -> Vector2:
+# index is the grid point it is, if any (see body_skeleton.gd's posed())
+func _shaped(point:Vector2, active:Array, index := -1) -> Vector2:
 	var moved = point
 	for entry in active:
-		moved = _step(entry, moved, point)
+		moved = _step(entry, moved, point, index)
 	return moved
 
 # Moves point (where the steps before moved drawn, a point on the doll as drawn)
 # by one entry of _active()
-func _step(entry:Array, point:Vector2, drawn:Vector2) -> Vector2:
+func _step(entry:Array, point:Vector2, drawn:Vector2, index := -1) -> Vector2:
 	if entry[0] == skeleton:
-		return skeleton.posed(point, drawn, entry[2])
+		return skeleton.posed(point, drawn, entry[2], index)
 	return entry[0].shaped(point, entry[1], entry[2])
 
 # Moves the grid's points to the doll's shape, in its pose straight away
@@ -669,7 +684,7 @@ func _update() -> void:
 		shaped_points = PackedVector2Array()
 		shaped_points.resize(len(rest))
 		for i in len(rest):
-			shaped_points[i] = from_screen * _shaped(to_screen * rest[i], active)
+			shaped_points[i] = from_screen * _shaped(to_screen * rest[i], active, i)
 	pose_from = shaped_points
 	pose_to = shaped_points
 	for swing in swings:
@@ -701,7 +716,7 @@ func _show() -> void:
 		var from_screen = to_screen.affine_inverse()
 		points = shaped_points.duplicate()
 		for i in moving:
-			points[i] = from_screen * _shaped(to_screen * rest[i], active)
+			points[i] = from_screen * _shaped(to_screen * rest[i], active, i)
 	for layer in layers:
 		layer.set_points(points)
 	for swing in swings:
@@ -835,7 +850,8 @@ func _work_out_pose() -> void:
 	var from_screen = to_screen.affine_inverse()
 	var stop_at = Time.get_ticks_usec() + POSE_BUDGET
 	while len(next_points) < len(rest):
-		next_points.append(from_screen * _shaped(to_screen * rest[len(next_points)], next_active))
+		var i = len(next_points)
+		next_points.append(from_screen * _shaped(to_screen * rest[i], next_active, i))
 		if len(next_points) % 32 == 0 and Time.get_ticks_usec() > stop_at:
 			return
 	# only points near blinking's and breathing's controls in the new pose can be moved by them

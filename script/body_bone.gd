@@ -18,7 +18,9 @@
 #
 # The Body menu gets a slider named Slider, listed under Group (bones with the same
 # Slider move together). Turn is how far the bone turns, in degrees, with the slider
-# all the way left (x) and all the way right (y); more turns clockwise.
+# all the way left (x) and all the way right (y); more turns clockwise. Keep it small (about
+# 25 degrees at most): the doll is one flat picture, and nothing was drawn under an arm
+# held against the body, so turning it far stretches the picture to fill in.
 # A bone without a Slider never turns. Put one along the middle of the body (the torso):
 # the parts of the doll nearest to it, such as the head, then stay put when the
 # arms and legs turn.
