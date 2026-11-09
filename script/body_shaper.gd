@@ -24,6 +24,10 @@
 # worked out a little each frame, and then the doll slides from the old pose to it.
 # Stickers move along with the pose (see sticker_stage.gd). Poses are never saved in outfits.
 #
+# The skeleton (body_skeleton.gd, the Skeleton node) turns arms and legs at their joints.
+# Its bones' sliders are listed in the Body menu like the others, and it is applied last,
+# so the bones turn the reshaped doll.
+#
 # Players can move the controls to fit their own doll (see body_fitter.gd), or have the
 # game put the controls with a Landmark on the doll's parts (see body_finder.gd).
 # Each body picture (the first layer after the backgrounds) keeps its own fit,
@@ -39,6 +43,7 @@ signal expression_started
 const BodyControl = preload("res://script/body_control.gd")
 const BodySculpt = preload("res://script/body_sculpt.gd")
 const BodyFinder = preload("res://script/body_finder.gd")
+const BodySkeleton = preload("res://script/body_skeleton.gd")
 # Where outfits keep the sculpt brush's pushes, among the sliders' values
 const SCULPT := "_sculpt"
 const FIT_FILE := "user://body_fit.json"
@@ -122,6 +127,7 @@ var defaults := {} # control name -> [position, reach] as placed in the scene
 var fits := {} # body picture -> {control name: {"x", "y", "reach_x", "reach_y"}} (see save_fit)
 var body_item := "" # the body picture worn now, whose fit the controls show
 var pictures := {} # layer pictures (Texture2D -> Image), looked at by is_on_doll()
+var skeleton: BodySkeleton # the Skeleton node, or null for none
 
 # Builds the grid over the doll's images. placeholder is the SpritePlaceholder
 # that marks where the doll is, and has one of its images.
@@ -133,6 +139,10 @@ func setup(doll_layers:Array, placeholder:Sprite2D) -> void:
 	for layer in layers:
 		layer.offset = middle
 	sculpt = BodySculpt.new(middle - image_size / 2, image_size, to_screen)
+	for child in get_children():
+		if child is BodySkeleton:
+			skeleton = child
+			skeleton.collect()
 	for control in controls():
 		defaults[control.name] = [control.global_position, control.reach]
 	if FileAccess.file_exists(FIT_FILE):
@@ -146,13 +156,17 @@ func setup(doll_layers:Array, placeholder:Sprite2D) -> void:
 func controls() -> Array:
 	return get_children().filter(func(child): return child is BodyControl)
 
+# The skeleton's bones (body_bone.gd)
+func bones() -> Array:
+	return skeleton.bones if skeleton else []
+
 # The sliders for the Body menu, grouped by heading, in the order the controls are listed:
 #   [{"group": "Body", "sliders": ["Height", "Waist"]}, {"group": "Face", ...}]
 # Controls without a slider or a group (moved by the game itself) aren't listed.
 func slider_groups() -> Array:
 	var groups := []
 	var seen := {}
-	for control in controls():
+	for control in controls() + bones():
 		if control.slider == "" or control.group == "" or seen.has(control.slider):
 			continue
 		seen[control.slider] = true
@@ -270,7 +284,12 @@ func bent(points:PackedVector2Array, inhaled := 0.0) -> PackedVector2Array:
 func is_on_doll(point:Vector2) -> bool:
 	if rest.is_empty():
 		return false
-	var uv = (to_screen.affine_inverse() * unshaped(point) - (middle - image_size / 2)) / image_size
+	var drawn = _unshape(point)
+	return drawn != null and _on_pictures(drawn)
+
+# Whether point (on the doll as drawn) is on a part of a layer's picture that isn't see-through
+func _on_pictures(drawn:Vector2) -> bool:
+	var uv = (to_screen.affine_inverse() * drawn - (middle - image_size / 2)) / image_size
 	if uv.x < 0.0 or uv.y < 0.0 or uv.x >= 1.0 or uv.y >= 1.0:
 		return false
 	for layer in layers:
@@ -288,17 +307,44 @@ func is_on_doll(point:Vector2) -> bool:
 			return true
 	return false
 
-# The point on the doll as drawn that the shape moves to point (the opposite of shaped())
+# The point on the doll as drawn that the shape moves to point (the opposite of shaped()).
+# A turned arm can cover empty space, so two points can move to the same place:
+# then the one on the doll (the arm) is the answer.
 func unshaped(point:Vector2) -> Vector2:
+	var drawn = _unshape(point)
+	return drawn if drawn != null else point
+
+# Like unshaped(), but null when nothing on the doll moves to point
+# (such as where a turned arm used to be)
+func _unshape(point:Vector2):
 	var active = _active()
 	if active.is_empty():
 		return point
-	var guess = point
-	for i in 10:
+	var starts = [point]
+	for entry in active:
+		if entry[0] == skeleton:
+			for move in entry[2]:
+				if move != Transform2D.IDENTITY:
+					starts.append(move.affine_inverse() * point)
+	var first_found = null
+	for start in starts:
+		var found = _unshaped_from(point, start, active)
+		if found == null:
+			continue
+		if len(starts) == 1 or _on_pictures(found):
+			return found
+		if first_found == null:
+			first_found = found
+	return first_found
+
+# Looks for the point that the shape moves to point, starting at guess
+# (Newton's method), or null when it isn't found
+func _unshaped_from(point:Vector2, guess:Vector2, active:Array):
+	for i in 12:
 		var miss = _shaped(guess, active) - point
-		if miss.length() < 0.01:
-			break
-		# step back along the shape's slope at the guess (Newton's method)
+		if miss.length() < 0.05:
+			return guess
+		# step back along the shape's slope at the guess
 		var across = _shaped(guess + Vector2.RIGHT, active) - _shaped(guess, active)
 		var down = _shaped(guess + Vector2.DOWN, active) - _shaped(guess, active)
 		var slope = across.cross(down)
@@ -306,7 +352,7 @@ func unshaped(point:Vector2) -> Vector2:
 			guess -= miss
 		else:
 			guess -= Vector2(down.y * miss.x - down.x * miss.y, across.x * miss.y - across.y * miss.x) / slope
-	return guess
+	return guess if (_shaped(guess, active) - point).length() < 1.0 else null
 
 
 #####################################
@@ -445,6 +491,22 @@ func _build_grid() -> void:
 		for y in range(first.y, last.y + 1):
 			for x in range(first.x, last.x + 1):
 				spots[Vector2i(x, y)] = true
+	# extra points along the bones that turn, so arms and legs bend smoothly at their edges
+	var fine = SMALL_AREA_POINTS / 2
+	for bone in bones():
+		if bone.slider == "":
+			continue
+		var start = from_screen * bone.global_position - corner
+		var finish = from_screen * bone.tip() - corner
+		var width = bone.width * bone.global_scale.x / to_screen.get_scale().x + square.x / 2
+		var first = Vector2i(((start.min(finish) - Vector2.ONE * width) / lattice).floor()).max(Vector2i.ZERO)
+		var last = Vector2i(((start.max(finish) + Vector2.ONE * width) / lattice).ceil()).min(grid_size * SMALL_AREA_POINTS)
+		first = first / fine * fine
+		for y in range(first.y, last.y + 1, fine):
+			for x in range(first.x, last.x + 1, fine):
+				var spot = Vector2(x, y) * lattice
+				if spot.distance_to(Geometry2D.get_closest_point_to_segment(spot, start, finish)) <= width:
+					spots[Vector2i(x, y)] = true
 
 	rest = PackedVector2Array()
 	uvs = PackedVector2Array()
@@ -459,6 +521,9 @@ func _build_grid() -> void:
 		layer.uvs = uvs
 		layer.colors = colors
 		layer.triangles = triangles
+	if skeleton:
+		var body_picture = layers[0].texture if not layers.is_empty() else null
+		skeleton.build(body_picture, corner, image_size, to_screen)
 	_find_swings()
 
 
@@ -493,13 +558,26 @@ func _active(closed := 0.0, inhaled := 0.0, face := {}) -> Array:
 			if shape != BodyControl.Shape.STRIP:
 				middle_now = _shaped(middle_now, active)
 			active.append([control, value, middle_now])
+	# the bones turn last, at their joints on the reshaped doll
+	if skeleton and skeleton.has_turning_bones():
+		var joints = skeleton.bones.map(func(bone): return _shaped(bone.global_position, active))
+		var moves = skeleton.pose(shown, joints)
+		if not moves.is_empty():
+			active.append([skeleton, 1.0, moves])
 	return active
 
 func _shaped(point:Vector2, active:Array) -> Vector2:
 	var moved = point
 	for entry in active:
-		moved = entry[0].shaped(moved, entry[1], entry[2])
+		moved = _step(entry, moved, point)
 	return moved
+
+# Moves point (where the steps before moved drawn, a point on the doll as drawn)
+# by one entry of _active()
+func _step(entry:Array, point:Vector2, drawn:Vector2) -> Vector2:
+	if entry[0] == skeleton:
+		return skeleton.posed(point, drawn, entry[2])
+	return entry[0].shaped(point, entry[1], entry[2])
 
 # Moves the grid's points to the doll's shape, in its pose straight away
 func _update() -> void:
@@ -573,19 +651,41 @@ func _show() -> void:
 # areas with the eyes closed and the doll breathed in
 func _find_moving() -> void:
 	moving = PackedInt32Array()
-	var active = _active(1.0, 1.0, expression)
+	var closed = _active(1.0, 1.0, expression)
+	var near = _near_blinking(closed, _active(0.0, 0.0, expression))
 	for i in len(rest):
-		if _moves(i, active):
+		if _is_near(shaped_points[i], near) and _moves(i, closed):
 			moving.append(i)
+
+# Where blinking's and breathing's controls are on the doll in the pose of active,
+# and how far around them to look for the points they move (in a layer's coordinates).
+# closed is the same pose with the eyes closed and breathed in.
+func _near_blinking(closed:Array, active:Array) -> Array:
+	var from_screen = to_screen.affine_inverse()
+	var near := []
+	for entry in closed:
+		if entry[0] is BodyControl and _blinks_or_breathes(entry[0]):
+			var size = entry[0].reach * entry[0].global_scale.abs() * 1.5 + Vector2.ONE * NEAR_MARGIN
+			near.append([from_screen * _shaped(entry[2], active), from_screen.basis_xform(size).abs()])
+	return near
+
+static func _is_near(spot:Vector2, near:Array) -> bool:
+	for control in near:
+		if ((spot - control[0]) / control[1]).length_squared() < 1.0:
+			return true
+	return false
 
 # Whether blinking or breathing moves grid point i, with the controls active
 # as _active() gives them with the eyes closed and breathed in
 func _moves(i:int, active:Array) -> bool:
-	var moved = to_screen * rest[i]
+	var drawn = to_screen * rest[i]
+	var moved = drawn
 	for entry in active:
+		if entry[0] == skeleton:
+			break # the skeleton comes last and doesn't blink or breathe
 		if _blinks_or_breathes(entry[0]) and entry[0].reaches(moved, entry[2]):
 			return true
-		moved = entry[0].shaped(moved, entry[1], entry[2])
+		moved = _step(entry, moved, drawn)
 	return false
 
 func _blinks_or_breathes(control) -> bool:
@@ -666,15 +766,9 @@ func _work_out_pose() -> void:
 		if len(next_points) % 32 == 0 and Time.get_ticks_usec() > stop_at:
 			return
 	# only points near blinking's and breathing's controls in the new pose can be moved by them
-	var near := []
-	for entry in next_closed:
-		if entry[0] is BodyControl and _blinks_or_breathes(entry[0]):
-			var size = entry[0].reach * entry[0].global_scale.abs() * 1.5 + Vector2.ONE * NEAR_MARGIN
-			near.append([from_screen * _shaped(entry[2], next_active), from_screen.basis_xform(size).abs()])
+	var near = _near_blinking(next_closed, next_active)
 	while next_checked < len(rest):
-		var spot = next_points[next_checked]
-		if near.any(func(control): return ((spot - control[0]) / control[1]).length_squared() < 1.0) \
-				and _moves(next_checked, next_closed):
+		if _is_near(next_points[next_checked], near) and _moves(next_checked, next_closed):
 			next_moving.append(next_checked)
 		next_checked += 1
 		if next_checked % 32 == 0 and Time.get_ticks_usec() > stop_at:

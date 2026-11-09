@@ -78,33 +78,34 @@ const DEMAND_TIME := 30.0
 # Sliders that turn or look to one side
 const SIDED := ["Lean", "Head tilt", "Look across"]
 
-# Weight on one hip, head tilted back the other way, half-lidded and unimpressed
-const RESTING := {"Lean": 0.4, "Head tilt": -0.3, "Squint": 0.3, "Smile": -0.1}
-const SIDE_EYE := {"Lean": 0.4, "Head tilt": -0.2, "Squint": 0.45, "Smile": -0.15, "Look across": 0.9}
-const HAIR_DIP := {"Lean": 0.4, "Head tilt": 0.2, "Squint": 0.3, "Smile": -0.1}
-const HAIR_FLICK := {"Lean": 0.45, "Head tilt": -0.7, "Squint": 0.4, "Smile": 0.1, "Smirk": 0.4}
-const ROLL_START := {"Lean": 0.3, "Head tilt": -0.35, "Squint": 0.2, "Smile": -0.2, "Look up": 0.6, "Look across": -0.8}
-const ROLL_TOP := {"Lean": 0.3, "Head tilt": -0.45, "Squint": 0.15, "Smile": -0.2, "Look up": 1.0}
-const ROLL_END := {"Lean": 0.3, "Head tilt": -0.4, "Squint": 0.35, "Smile": -0.25, "Look up": 0.5, "Look across": 0.8}
-const SIGH := {"Lean": 0.15, "Head tilt": 0.15, "Squint": 0.7, "Smile": -0.35, "Look up": -0.5}
-const LOVE := {"Lean": 0.6, "Head tilt": 0.35, "Eye size": 0.35, "Cheeks": 0.4, "Smile": 0.8, "Squint": -0.2}
-const LOVE_HOLD := {"Lean": 0.45, "Head tilt": 0.25, "Eye size": 0.25, "Cheeks": 0.35, "Smile": 0.7, "Squint": 0.1}
-const LOOK_DOWN := {"Lean": 0.4, "Head tilt": -0.2, "Squint": 0.4, "Smile": -0.1, "Look up": -1.0}
-const NOT_BAD := {"Lean": 0.4, "Head tilt": -0.35, "Squint": 0.45, "Smirk": 0.5}
+# Weight on one hip, a hand on the other, head tilted back, half-lidded and unimpressed.
+# The arm and leg sliders (the Skeleton's bones) aren't in SIDED: they stay on their own side.
+const RESTING := {"Lean": 0.4, "Head tilt": -0.3, "Squint": 0.3, "Smile": -0.1, "Right arm": 0.25, "Right elbow": -1.0}
+const SIDE_EYE := {"Lean": 0.4, "Head tilt": -0.2, "Squint": 0.45, "Smile": -0.15, "Look across": 0.9, "Right arm": 0.25, "Right elbow": -1.0}
+const HAIR_DIP := {"Lean": 0.4, "Head tilt": 0.2, "Squint": 0.3, "Smile": -0.1, "Right arm": 0.25, "Right elbow": -1.0}
+const HAIR_FLICK := {"Lean": 0.45, "Head tilt": -0.7, "Squint": 0.4, "Smile": 0.1, "Smirk": 0.4, "Right arm": 0.25, "Right elbow": -1.0}
+const ROLL_START := {"Lean": 0.3, "Head tilt": -0.35, "Squint": 0.2, "Smile": -0.2, "Look up": 0.6, "Look across": -0.8, "Right arm": 0.25, "Right elbow": -1.0}
+const ROLL_TOP := {"Lean": 0.3, "Head tilt": -0.45, "Squint": 0.15, "Smile": -0.2, "Look up": 1.0, "Right arm": 0.25, "Right elbow": -1.0}
+const ROLL_END := {"Lean": 0.3, "Head tilt": -0.4, "Squint": 0.35, "Smile": -0.25, "Look up": 0.5, "Look across": 0.8, "Right arm": 0.25, "Right elbow": -1.0}
+const SIGH := {"Lean": 0.15, "Head tilt": 0.15, "Squint": 0.7, "Smile": -0.35, "Look up": -0.5, "Right arm": 0.1, "Right elbow": -0.8}
+const LOVE := {"Lean": 0.6, "Head tilt": 0.35, "Eye size": 0.35, "Cheeks": 0.4, "Smile": 0.8, "Squint": -0.2, "Left arm": 0.3, "Right arm": 0.5, "Right elbow": -0.5}
+const LOVE_HOLD := {"Lean": 0.45, "Head tilt": 0.25, "Eye size": 0.25, "Cheeks": 0.35, "Smile": 0.7, "Squint": 0.1, "Left arm": 0.2, "Right arm": 0.4, "Right elbow": -0.6}
+const LOOK_DOWN := {"Lean": 0.4, "Head tilt": -0.2, "Squint": 0.4, "Smile": -0.1, "Look up": -1.0, "Right arm": 0.25, "Right elbow": -1.0}
+const NOT_BAD := {"Lean": 0.4, "Head tilt": -0.35, "Squint": 0.45, "Smirk": 0.5, "Right arm": 0.25, "Right elbow": -1.0}
 # Looks and turns away, cheeks puffed
-const POUT := {"Lean": -0.3, "Head tilt": -0.6, "Look across": -0.9, "Squint": 0.35, "Smile": -0.6, "Mouth size": -0.3, "Cheeks": 0.4}
-const GASP := {"Lean": -0.4, "Head tilt": 0.1, "Eye size": 0.4, "Mouth size": 0.5, "Smile": -0.3, "Squint": -0.3}
-const PHOTO := {"Lean": 0.65, "Head tilt": -0.45, "Squint": 0.35, "Smile": 0.3, "Smirk": 0.8, "Eye size": 0.1, "Look across": -0.15}
-const SMUG := {"Lean": 0.6, "Head tilt": -0.5, "Squint": 0.5, "Smile": 0.2, "Smirk": 0.9, "Look across": -0.3}
-# Turned away with her arms (well, cheeks) crossed, instead of RESTING while she sulks
-const SULK := {"Lean": -0.35, "Head tilt": -0.45, "Look across": -1.0, "Squint": 0.45, "Smile": -0.45, "Cheeks": 0.25}
+const POUT := {"Lean": -0.3, "Head tilt": -0.6, "Look across": -0.9, "Squint": 0.35, "Smile": -0.6, "Mouth size": -0.3, "Cheeks": 0.4, "Right arm": -0.2, "Right elbow": -0.5}
+const GASP := {"Lean": -0.4, "Head tilt": 0.1, "Eye size": 0.4, "Mouth size": 0.5, "Smile": -0.3, "Squint": -0.3, "Left elbow": 0.6, "Right arm": 0.2, "Right elbow": -0.5}
+const PHOTO := {"Lean": 0.65, "Head tilt": -0.45, "Squint": 0.35, "Smile": 0.3, "Smirk": 0.8, "Eye size": 0.1, "Look across": -0.15, "Right arm": 0.45, "Right elbow": -0.4, "Left leg": 0.3}
+const SMUG := {"Lean": 0.6, "Head tilt": -0.5, "Squint": 0.5, "Smile": 0.2, "Smirk": 0.9, "Look across": -0.3, "Right arm": 0.25, "Right elbow": -1.0}
+# Turned away, arms dropped, instead of RESTING while she sulks
+const SULK := {"Lean": -0.35, "Head tilt": -0.45, "Look across": -1.0, "Squint": 0.45, "Smile": -0.45, "Cheeks": 0.25, "Right arm": -0.5, "Left arm": -0.3}
 # For pokes these are turned towards the side she is poked from, not her hip:
 # she jumps away from the poke, then looks back at whoever did it
-const FLINCH := {"Lean": 0.5, "Head tilt": 0.3, "Eye size": 0.35, "Squint": -0.2, "Smile": -0.2}
+const FLINCH := {"Lean": 0.5, "Head tilt": 0.3, "Eye size": 0.35, "Squint": -0.2, "Smile": -0.2, "Left elbow": 0.4, "Right arm": 0.4, "Right elbow": -0.3}
 const LOOK_BACK := {"Lean": 0.35, "Head tilt": -0.1, "Look across": -0.9, "Squint": 0.2, "Eye size": 0.15}
 const GLARE := {"Lean": 0.3, "Head tilt": -0.3, "Look across": -1.0, "Squint": 0.6, "Smile": -0.4}
 # Asking for something: hip out, looking right at whoever should get it
-const DEMAND := {"Lean": 0.55, "Head tilt": 0.2, "Squint": 0.35, "Smile": -0.25, "Look across": -0.4, "Eye size": 0.1}
+const DEMAND := {"Lean": 0.55, "Head tilt": 0.2, "Squint": 0.35, "Smile": -0.25, "Look across": -0.4, "Eye size": 0.1, "Right arm": 0.35, "Right elbow": -1.0}
 
 # What she says. A line is picked at random (not the same one twice in a row);
 # %d is the judge's score, and %s what she wants (a color or a layer's name).
