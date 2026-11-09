@@ -11,12 +11,11 @@ extends Node
 @onready var body_fitter: Node2D = %BodyFitter
 @onready var body_sculptor: Node2D = %BodySculptor
 
-@onready var category_buttons: HBoxContainer = %CategoryButtons
-@onready var tabs_of_items_container: CenterContainer = %TabsOfItemsContainer
+@onready var category_buttons: VBoxContainer = %CategoryButtons
+@onready var tabs_of_items_container: VBoxContainer = %TabsOfItemsContainer
 @onready var interactivity: Node = %Interactivity
 
-
-@onready var category_scroll: ScrollContainer = $Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer
+@onready var category_scroll: ScrollContainer = %CategoryScroll
 
 @export var button_base : PackedScene
 @export var category_button : PackedScene
@@ -91,6 +90,8 @@ func _ready() -> void:
 		newbutton.icon = icon
 		newbutton.name = file_name
 		newbutton.category = file_name
+		newbutton.text = category_label(file_name)
+		newbutton.tooltip_text = newbutton.text
 		category_buttons.add_child(newbutton)
 
 
@@ -167,6 +168,7 @@ func add_sticker_category() -> void:
 	newbutton.icon = load(icon_path) if ResourceLoader.exists(icon_path) else load("res://GUI/sticker_icon.svg")
 	newbutton.name = "Stickers"
 	newbutton.category = interactivity.STICKERS
+	newbutton.text = "Stickers"
 	newbutton.tooltip_text = "Stickers"
 	category_buttons.add_child(newbutton)
 	
@@ -200,6 +202,7 @@ func add_body_category() -> void:
 	newbutton.icon = load(icon_path) if ResourceLoader.exists(icon_path) else load("res://GUI/example_icon.png")
 	newbutton.name = "Body"
 	newbutton.category = interactivity.BODY
+	newbutton.text = "Body"
 	newbutton.tooltip_text = "Body"
 	category_buttons.add_child(newbutton)
 
@@ -212,6 +215,13 @@ func add_body_category() -> void:
 	newtab.fit_requested.connect(body_fitter.start)
 	newtab.sculpt_requested.connect(body_sculptor.start)
 	interactivity.body_tab = newtab
+
+
+# The name shown under a category button: the folder name without its number,
+# such as "Backgrounds" for 00Backgrounds or "Hair Back" for 04HairBack
+static func category_label(folder:String) -> String:
+	var label = folder.lstrip("0123456789").capitalize()
+	return label if label != "" else folder
 
 
 func read_files_in_folder(tab_node:Node, path:String) -> String:

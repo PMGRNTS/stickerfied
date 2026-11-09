@@ -5,11 +5,16 @@
 [ext_resource type="Script" uid="uid://ch0gtmifyw647" path="res://script/button_base.gd" id="2_ouvg5"]
 
 [node name="CategoryButton" type="Button" unique_id=195033125 groups=["category_button"]]
-offset_right = 8.0
-offset_bottom = 8.0
+custom_minimum_size = Vector2(68, 60)
+offset_right = 68.0
+offset_bottom = 60.0
+focus_mode = 0
 theme = ExtResource("1_rds4q")
-theme_type_variation = &"FlatButton"
+theme_type_variation = &"CategoryButton"
+toggle_mode = true
 icon = ExtResource("1_ouvg5")
+icon_alignment = 1
+vertical_icon_alignment = 0
 script = ExtResource("2_ouvg5")
 operation = "category"
 

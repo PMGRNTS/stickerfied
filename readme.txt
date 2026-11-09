@@ -9,7 +9,7 @@ Features:
 	Publish your dress-up game like any other Godot game
 
 	Players can recolor items, reshape the doll, place stickers, undo/redo, randomize, save outfits, take photos,
-	share outfit codes, play dress-up challenges, make new backgrounds, stickers and doll items with AI,
+	share outfit codes, make new backgrounds, stickers and doll items with AI,
 	add their own drawings and photos to any menu,
 	and let an AI stylist dress the doll or judge the look (see "Extra features" below)
 
@@ -106,6 +106,13 @@ Here are some easy changes to try in the editor:
 - Reposition / scale the "SpritePlaceholder" node. Your own doll will show up in that spot when you run the game!
 - Reposition the "ButtonTray" node to move the menu to a different spot on the screen
 
+The screen is laid out in two parts: the doll on the left, and everything else in one
+column on the right. At the top of the column are Undo, Redo, Random, Reset and sound;
+in the middle is the menu, with the category buttons down its left side (each labelled
+with its folder name without the number, so 03Hair shows "Hair") next to the items of
+the open category; at the bottom are Save, Outfits, Share, Photo, AI Create and AI Stylist.
+Zoom is in the bottom left corner of the doll's side.
+
 Note that to change the background images/color of the menu or buttons, you
 can either edit the game's theme (look up tutorials on editing Godot themes)
 or replace the images button_BG.png and menu_BG.png in the GUI folder.
@@ -141,7 +148,9 @@ Layers:
   after the backgrounds, 01Skin in the example) always show something.
   The game starts with the first image of each of these.
 - Every other layer gets a "nothing" button, so items can be taken off.
-- Under the color swatches, the rainbow slider picks any color, and "Keep"
+- Each category's items start with "nothing" (where there is one) and end with the
+  buttons for adding your own picture and making one with AI.
+- Under the color swatches, the rainbow slider picks any color, and "Lock"
   makes Random leave that layer as it is.
 - The game remembers the outfit the player was wearing and starts with it next time.
   To always start fresh, select Interactivity in dress_up.tscn and untick
@@ -154,7 +163,7 @@ Layers:
 Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
 "ToolButton" style in theme.tres):
 - Undo / Redo (also Ctrl+Z and Ctrl+Shift+Z), Random, Reset
-- Zoom (top left): - and + zoom out and in on the selected sticker (or the doll), and the
+- Zoom (bottom left): - and + zoom out and in on the selected sticker (or the doll), and the
   percentage goes back to the whole doll. Ctrl + mouse wheel (Cmd on Mac) or pinching on a
   trackpad zooms around the pointer, and Ctrl + plus, minus and 0 work too. When zoomed in,
   drag with the right or middle mouse button, hold Space and drag, or scroll with two fingers
@@ -168,12 +177,9 @@ Tool buttons (move or restyle them in GUI/toolbar.tscn; their look is the
   a pose for it first.
 - AI Create makes a new background, sticker or doll item from a description (see below)
 - AI Stylist dresses the doll for an occasion, or judges the outfit (see below)
-- Challenge (bottom left) gives a theme to dress up for before the time runs out.
-  Press Judge for an AI score, or take a Photo. Change the themes and the time
-  by selecting ChallengeBar in GUI/toolbar.tscn ("Seconds" 0 means no time limit).
 
 Stickers:
-The star category button (the last one) holds stickers: accessories that can be
+The Stickers category button holds stickers: accessories that can be
 placed anywhere on the doll, unlike layers.
 - Click a sticker in the menu to put it on the doll. Drag it to move it.
 - Drag the round handle at its corner to resize and turn it.
@@ -401,8 +407,7 @@ Popups/AIStylistDialog in dress_up.tscn).
   name your art files clearly (red_beret.png, not item7.png). AI backgrounds and stickers
   are described by the prompt they were made from. The change can be undone like any other.
 - Judge me: a picture of the doll (without the menus) is sent to the model, which gives
-  a score out of 10, a name for the look and a friendly tip. During a challenge it
-  judges how well the outfit fits the theme.
+  a score out of 10, a name for the look and a friendly tip.
 - The instructions given to the model can be edited in the Inspector too.
 
 Sounds:

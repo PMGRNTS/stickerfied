@@ -18,8 +18,12 @@ var sliders := {} # slider name -> HSlider
 
 # groups comes from body_shaper.gd's slider_groups()
 func build(groups:Array) -> void:
+	size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	size_flags_vertical = Control.SIZE_EXPAND_FILL
+	add_theme_constant_override("separation", 6)
 	var scroll := ScrollContainer.new()
-	scroll.custom_minimum_size = Vector2(250, 250)
+	scroll.custom_minimum_size = Vector2(0, 140)
+	scroll.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	scroll.horizontal_scroll_mode = ScrollContainer.SCROLL_MODE_DISABLED
 	add_child(scroll)
 	var margin := MarginContainer.new() # keeps the sliders' ends clear of the scroll bar
@@ -69,7 +73,7 @@ func _slider_row(slider_name:String) -> Control:
 	row.add_theme_constant_override("separation", 8)
 	var label := Label.new()
 	label.text = slider_name
-	label.custom_minimum_size = Vector2(88, 0)
+	label.custom_minimum_size = Vector2(84, 0)
 	label.add_theme_font_size_override("font_size", 13)
 	label.add_theme_color_override("font_color", TEXT_COLOR)
 	row.add_child(label)
