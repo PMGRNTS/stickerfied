@@ -79,6 +79,9 @@ func _on_button_press(node_pressed:Node, operation_name:String):
 		for i in tab_nodes + [sticker_tab, body_tab]:
 			if i:
 				i.visible = i.layer == node_pressed.category
+		# the open category stays highlighted
+		for button in get_tree().get_nodes_in_group("category_button"):
+			button.set_pressed_no_signal(button.category == node_pressed.category)
 		if sounds_on:
 			Sfx.play("click")
 	# user selected an item, such as a specific hair or makeup item
@@ -167,7 +170,7 @@ func reset() -> void:
 	set_outfit(starting_outfit())
 
 # Picks a random item for every layer, and sometimes a random color.
-# Layers with "Keep" ticked stay as they are.
+# Layers with "Lock" ticked stay as they are.
 func randomize_outfit() -> void:
 	var new_outfit := empty_outfit()
 	for i in len(layers):

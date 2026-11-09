@@ -1,5 +1,5 @@
 # The tool buttons around the menu: undo/redo, random, reset, zoom,
-# save, saved outfits, share codes, photo, AI Create, AI Stylist and challenges.
+# save, saved outfits, share codes, photo, AI Create and AI Stylist.
 # Move or restyle the buttons in GUI/toolbar.tscn.
 
 extends Control
@@ -35,8 +35,6 @@ func _ready() -> void:
 	%PhotoButton.pressed.connect(take_photo)
 	%AIButton.pressed.connect(ai_create_dialog.open)
 	%StylistButton.pressed.connect(ai_stylist_dialog.open)
-	%ChallengeBar.judge_requested.connect(func(): ai_stylist_dialog.open_for(ai_stylist_dialog.Mode.JUDGE))
-	%ChallengeBar.message.connect(show_message)
 	interactivity.outfit_changed.connect(_update_buttons)
 	if stage_zoom:
 		%ZoomInButton.pressed.connect(stage_zoom.zoom_in)
@@ -72,10 +70,6 @@ func _unhandled_input(event: InputEvent) -> void:
 		interactivity.undo()
 		get_viewport().set_input_as_handled()
 
-
-# The theme of the challenge being played, or "" when there is none
-func challenge_theme() -> String:
-	return %ChallengeBar.current_theme
 
 # A short message at the top of the screen that fades away
 func show_message(text: String) -> void:

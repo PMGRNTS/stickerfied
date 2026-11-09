@@ -1,6 +1,6 @@
 # Zooms in on the doll, so stickers and pictures can be put on small parts of it.
 # Everything but the menus zooms (the menus are on their own CanvasLayer, "Menus").
-#   - the zoom buttons (top left), or Ctrl/Cmd + plus, minus and 0
+#   - the zoom buttons (bottom left), or Ctrl/Cmd + plus, minus and 0
 #   - Ctrl/Cmd + mouse wheel, or pinching on a trackpad (away from a selected sticker,
 #     which pinching resizes), zooms around the pointer
 #   - when zoomed in, drag with the right or middle mouse button, or hold Space and drag,

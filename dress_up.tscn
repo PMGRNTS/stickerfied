@@ -68,66 +68,67 @@ theme = ExtResource("7_218i8")
 
 [node name="ButtonTray" type="PanelContainer" parent="Menus/DressupMenu" unique_id=1339431818]
 layout_mode = 1
-anchors_preset = 6
+anchors_preset = 11
 anchor_left = 1.0
-anchor_top = 0.5
 anchor_right = 1.0
-anchor_bottom = 0.5
-offset_left = -319.0
-offset_top = -228.0
-offset_right = -59.0
-offset_bottom = 202.0
+anchor_bottom = 1.0
+offset_left = -340.0
+offset_top = 54.0
+offset_right = -12.0
+offset_bottom = -94.0
 grow_horizontal = 0
 grow_vertical = 2
 
-[node name="VBoxContainer" type="VBoxContainer" parent="Menus/DressupMenu/ButtonTray" unique_id=1237066070]
+[node name="Margin" type="MarginContainer" parent="Menus/DressupMenu/ButtonTray" unique_id=395626096]
 layout_mode = 2
+theme_override_constants/margin_left = 4
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 4
+theme_override_constants/margin_bottom = 10
 
-[node name="ScrollContainer" type="ScrollContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer" unique_id=280947986]
-custom_minimum_size = Vector2(64, 80)
+[node name="TrayRow" type="HBoxContainer" parent="Menus/DressupMenu/ButtonTray/Margin" unique_id=1237066070]
 layout_mode = 2
-size_flags_vertical = 0
-theme = ExtResource("7_218i8")
-theme_type_variation = &"category"
-theme_override_constants/scrollbar_v_separation = 20
-horizontal_scroll_mode = 3
-vertical_scroll_mode = 0
+theme_override_constants/separation = 6
 
-[node name="MarginContainer" type="MarginContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer" unique_id=395626096]
+[node name="CategoryScroll" type="ScrollContainer" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow" unique_id=280947986]
+unique_name_in_owner = true
 layout_mode = 2
-theme_override_constants/margin_top = 16
-theme_override_constants/margin_bottom = 20
+size_flags_vertical = 3
+horizontal_scroll_mode = 0
 
-[node name="CategoryButtons" type="HBoxContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer" unique_id=1024074576]
+[node name="CategoryButtons" type="VBoxContainer" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow/CategoryScroll" unique_id=1024074576]
 unique_name_in_owner = true
 layout_mode = 2
 theme = ExtResource("7_218i8")
+theme_override_constants/separation = 4
 
-[node name="ExampleButton" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=644335832 groups=["remove_at_start"]]
+[node name="ExampleButton" type="Button" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow/CategoryScroll/CategoryButtons" unique_id=644335832 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton2" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=278307981 groups=["remove_at_start"]]
+[node name="ExampleButton2" type="Button" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow/CategoryScroll/CategoryButtons" unique_id=278307981 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton3" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=529331027 groups=["remove_at_start"]]
+[node name="ExampleButton3" type="Button" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow/CategoryScroll/CategoryButtons" unique_id=529331027 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton4" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=1406776895 groups=["remove_at_start"]]
+[node name="ExampleButton4" type="Button" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow/CategoryScroll/CategoryButtons" unique_id=1406776895 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="ExampleButton5" type="Button" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/ScrollContainer/MarginContainer/CategoryButtons" unique_id=158043396 groups=["remove_at_start"]]
+[node name="ExampleButton5" type="Button" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow/CategoryScroll/CategoryButtons" unique_id=158043396 groups=["remove_at_start"]]
 layout_mode = 2
 icon = ExtResource("8_218i8")
 
-[node name="TabsOfItemsContainer" type="CenterContainer" parent="Menus/DressupMenu/ButtonTray/VBoxContainer" unique_id=458730207]
+[node name="TabsOfItemsContainer" type="VBoxContainer" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow" unique_id=458730207]
 unique_name_in_owner = true
 layout_mode = 2
+size_flags_horizontal = 3
+size_flags_vertical = 3
 
-[node name="ExampleVbox" parent="Menus/DressupMenu/ButtonTray/VBoxContainer/TabsOfItemsContainer" unique_id=1098066562 groups=["remove_at_start"] instance=ExtResource("1_pm0by")]
+[node name="ExampleVbox" parent="Menus/DressupMenu/ButtonTray/Margin/TrayRow/TabsOfItemsContainer" unique_id=1098066562 groups=["remove_at_start"] instance=ExtResource("1_pm0by")]
 layout_mode = 2
 
 [node name="SpritePlaceholder" type="Sprite2D" parent="." unique_id=1884174206]

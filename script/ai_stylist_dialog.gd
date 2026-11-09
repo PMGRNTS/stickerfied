@@ -2,14 +2,13 @@
 #   - Dress me: the player says where the doll is going, and the stylist
 #     picks items and colors from this game's menus (so it works with your own art).
 #   - Judge me: the judge looks at a picture of the doll and gives a score,
-#     a name for the look and a comment. During a challenge, it judges how well
-#     the outfit fits the challenge's theme.
+#     a name for the look and a comment.
 # It uses the same OpenRouter key as the AI Create window.
 
 extends OverlayDialog
 
 @export var interactivity: Node
-# Takes the picture the judge looks at, and knows the challenge's theme
+# Takes the picture the judge looks at
 @export var toolbar: Control
 # The model must accept pictures, for the judge. Any model from https://openrouter.ai/models
 # with "image" input works; cheaper ones answer faster.
@@ -17,7 +16,7 @@ extends OverlayDialog
 # Size of the picture sent to the judge (smaller is cheaper and faster)
 @export var judge_picture_width := 600
 @export_multiline var stylist_instructions := "You are a cheerful fashion stylist in a dress-up game for all ages. The player tells you where their doll is going. Choose one item for each layer, using only the exact item names you are given, and a color for each layer that can be recolored. Keep the outfit fun and fitting for the occasion. Reply only with JSON."
-@export_multiline var judge_instructions := "You are a kind, funny fashion judge in a dress-up game for all ages. Look at the picture of the doll (ignore the game's background unless it fits the look). Give a score from 1 to 10, a short catchy name for the look, and one or two friendly sentences of feedback with a small tip. Be encouraging: most looks deserve 6 or more. If there is a theme, judge how well the look fits it. Never comment on the doll's body. Reply only with JSON."
+@export_multiline var judge_instructions := "You are a kind, funny fashion judge in a dress-up game for all ages. Look at the picture of the doll (ignore the game's background unless it fits the look). Give a score from 1 to 10, a short catchy name for the look, and one or two friendly sentences of feedback with a small tip. Be encouraging: most looks deserve 6 or more. Never comment on the doll's body. Reply only with JSON."
 
 enum Mode { DRESS, JUDGE }
 
@@ -67,9 +66,7 @@ func set_mode(new_mode:Mode) -> void:
 	%JudgeMode.set_pressed_no_signal(mode == Mode.JUDGE)
 	%DressBox.visible = mode == Mode.DRESS
 	%JudgeBox.visible = mode == Mode.JUDGE
-	var theme_name = toolbar.challenge_theme()
-	%JudgeHint.text = "Challenge theme: %s" % theme_name if theme_name != "" else \
-		"The judge looks at your doll and gives the look a score."
+	%JudgeHint.text = "The judge looks at your doll and gives the look a score."
 	if not busy:
 		_set_status("")
 
@@ -210,8 +207,7 @@ func judge() -> void:
 	var height = roundi(judge_picture_width * float(picture.get_height()) / picture.get_width())
 	picture.resize(judge_picture_width, height, Image.INTERPOLATE_BILINEAR)
 
-	var theme_name = toolbar.challenge_theme()
-	var question = "The challenge theme is: %s." % theme_name if theme_name != "" else "There is no theme. Just judge the look."
+	var question = "Judge the look."
 	question += "\nReply with JSON like: {\"score\": 8, \"title\": \"<name for the look>\", \"comment\": \"<feedback>\"}"
 	var result = await client.ask_json(text_model, judge_instructions, question, picture)
 	_set_busy(false)

@@ -37,6 +37,11 @@ func add_item(picture: Texture2D, id: String) -> Button:
 	newbutton.item_id = id
 	newbutton.tooltip_text = item_label(id)
 	grid.add_child(newbutton)
+	# the "add your own" and "make one with AI" buttons stay at the end of the grid
+	if id not in [AI_BUTTON_ID, UPLOAD_BUTTON_ID]:
+		var tools = grid.get_children().filter(func(button): return button.item_id in [AI_BUTTON_ID, UPLOAD_BUTTON_ID])
+		if not tools.is_empty():
+			grid.move_child(newbutton, tools[0].get_index())
 	newbutton.show_picture(picture)
 	newbutton.mouse_entered.connect(func(): SignalBus.dressup_hover_signal.emit(newbutton, layer, newbutton.item_id, -1.0))
 	newbutton.mouse_exited.connect(func(): SignalBus.dressup_hover_signal.emit(null, layer, "", -1.0))
@@ -45,22 +50,20 @@ func add_item(picture: Texture2D, id: String) -> Button:
 	return newbutton
 
 
-# A button that opens the AI window, to make a new item for this tab
+# A button that opens the AI window, to make a new item for this tab (at the end of the grid)
 func add_ai_button(tooltip:String) -> void:
 	var newbutton = add_item(AI_ICON, AI_BUTTON_ID)
 	newbutton.image = null
 	newbutton.operation = "ai"
 	newbutton.tooltip_text = tooltip
-	grid.move_child(newbutton, 0)
 
 
-# A button that lets the player add their own picture to this tab
+# A button that lets the player add their own picture to this tab (at the end of the grid)
 func add_upload_button() -> void:
 	var newbutton = add_item(UPLOAD_ICON, UPLOAD_BUTTON_ID)
 	newbutton.image = null
 	newbutton.operation = "upload"
 	newbutton.tooltip_text = "Add your own picture"
-	grid.move_child(newbutton, 0)
 
 
 # A button that takes the item off (hides the layer)
@@ -90,11 +93,11 @@ func get_item_ids() -> Array:
 func add_color_swatches() -> void:
 	for hue in SWATCH_HUES:
 		var swatch := Button.new()
-		swatch.custom_minimum_size = Vector2(20, 20)
+		swatch.custom_minimum_size = Vector2(18, 18)
 		swatch.focus_mode = Control.FOCUS_NONE
 		swatch.set_meta("hue", hue)
 		var style := StyleBoxFlat.new()
-		style.set_corner_radius_all(10)
+		style.set_corner_radius_all(9)
 		style.set_border_width_all(2)
 		if hue < 0:
 			style.bg_color = Color.WHITE
@@ -123,7 +126,7 @@ static func item_label(id: String) -> String:
 	return id.get_file().get_basename().replace("_", " ").replace("-", " ")
 
 
-# A row under the swatches with a "Keep" box (Random leaves this layer alone)
+# A row under the swatches with a "Lock" box (Random leaves this layer alone)
 # and, for layers that can be recolored, a rainbow slider for any color.
 func add_options(can_recolor: bool) -> void:
 	var row := HBoxContainer.new()
@@ -131,8 +134,8 @@ func add_options(can_recolor: bool) -> void:
 	add_child(row)
 
 	keep_box = CheckBox.new()
-	keep_box.text = "Keep"
-	keep_box.tooltip_text = "Keep this when picking a random outfit"
+	keep_box.text = "Lock"
+	keep_box.tooltip_text = "Random won't change this"
 	keep_box.focus_mode = Control.FOCUS_NONE
 	for state in ["font_color", "font_hover_color", "font_pressed_color", "font_hover_pressed_color", "font_focus_color"]:
 		keep_box.add_theme_color_override(state, TEXT_COLOR)
