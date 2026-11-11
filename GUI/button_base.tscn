@@ -2,7 +2,7 @@
 
 [ext_resource type="Texture2D" uid="uid://ckkgvq5vqgg1b" path="res://GUI/example_icon.png" id="1_y51gk"]
 [ext_resource type="Script" uid="uid://ch0gtmifyw647" path="res://script/button_base.gd" id="2_y51gk"]
-[ext_resource type="Texture2D" uid="uid://c7kqp1wqhn1sk" path="res://images/01Skin/greenskin.PNG" id="3_0o1ja"]
+[ext_resource type="Texture2D" uid="uid://c7kqp1wqhn1sk" path="res://images/01Skin/rich_brown_skin.PNG" id="3_0o1ja"]
 
 [sub_resource type="StyleBoxFlat" id="StyleBoxFlat_selected"]
 draw_center = false

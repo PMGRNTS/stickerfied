@@ -133,11 +133,11 @@ static func _standard(look:Dictionary) -> Dictionary:
 	var height = float(look.bottom - look.top + 1)
 	var middle = float(look.middle)
 	var spots = {
-		J.NECK: [0.0, 0.2, 0.09], J.PELVIS: [0.0, 0.52, 0.09],
-		J.LEFT_SHOULDER: [-0.11, 0.25, 0.03], J.LEFT_ELBOW: [-0.16, 0.38, 0.028], J.LEFT_HAND: [-0.19, 0.52, 0.028],
-		J.RIGHT_SHOULDER: [0.11, 0.25, 0.03], J.RIGHT_ELBOW: [0.16, 0.38, 0.028], J.RIGHT_HAND: [0.19, 0.52, 0.028],
-		J.LEFT_HIP: [-0.06, 0.55, 0.045], J.LEFT_KNEE: [-0.065, 0.75, 0.04], J.LEFT_FOOT: [-0.07, 0.97, 0.04],
-		J.RIGHT_HIP: [0.06, 0.55, 0.045], J.RIGHT_KNEE: [0.065, 0.75, 0.04], J.RIGHT_FOOT: [0.07, 0.97, 0.04]}
+		J.NECK: [0.0, 0.13, 0.052], J.PELVIS: [0.0, 0.46, 0.052],
+		J.LEFT_SHOULDER: [-0.075, 0.21, 0.02], J.LEFT_ELBOW: [-0.113, 0.37, 0.016], J.LEFT_HAND: [-0.157, 0.56, 0.016],
+		J.RIGHT_SHOULDER: [0.075, 0.21, 0.02], J.RIGHT_ELBOW: [0.113, 0.37, 0.016], J.RIGHT_HAND: [0.157, 0.56, 0.016],
+		J.LEFT_HIP: [-0.045, 0.5, 0.024], J.LEFT_KNEE: [-0.035, 0.68, 0.018], J.LEFT_FOOT: [-0.028, 0.99, 0.018],
+		J.RIGHT_HIP: [0.045, 0.5, 0.024], J.RIGHT_KNEE: [0.035, 0.68, 0.018], J.RIGHT_FOOT: [0.028, 0.99, 0.018]}
 	var result := {}
 	for joint in spots:
 		var spot = spots[joint]

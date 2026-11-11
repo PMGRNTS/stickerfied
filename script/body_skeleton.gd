@@ -9,6 +9,11 @@
 # smoothly from one bone's turn to the other's. What is outside the body picture
 # (hair, a wide skirt, stickers) goes with the nearest part of the body.
 #
+# Parts drawn close together, such as an arm held a pixel or two from the hips, are told
+# apart by looking at the body picture itself, not just the coarser map: the map never
+# reaches across a gap in the picture, and the grid gets points along narrow gaps
+# (gap_points()) so it can tear there.
+#
 # The doll is one flat picture, so a turned part can only stretch what is around it.
 # Where the grid reaches across empty space between parts that turn differently (between
 # the legs, or an arm drawn apart from the body), it tears instead (see tear()): each side
@@ -37,6 +42,12 @@ const TEAR := 0.6
 # Distances are counted in tenths of a square, so diagonal steps (14) can be told apart
 const STEP := 10
 const DIAGONAL_STEP := 14
+# Gaps in the body picture up to this many pixels wide get grid points along them
+const NARROW_GAP := 8
+# Steps to the neighboring squares: [x, y, length, which wall bit, whether that bit is kept
+# on the neighbor rather than this square] (walls says which steps cross a gap)
+const NEIGHBORS := [[1, 0, STEP, 1, false], [-1, 0, STEP, 1, true], [0, 1, STEP, 2, false], [0, -1, STEP, 2, true],
+	[1, 1, DIAGONAL_STEP, 4, false], [-1, -1, DIAGONAL_STEP, 4, true], [-1, 1, DIAGONAL_STEP, 8, false], [1, -1, DIAGONAL_STEP, 8, true]]
 
 # The body shaper looks at each step's slider for blinking; the skeleton doesn't blink
 var slider := ""
@@ -52,7 +63,13 @@ var from_screen := Transform2D()
 var square_bones := PackedInt32Array()
 var square_weights := PackedFloat32Array()
 var built_for := "" # what the map was made for, so it isn't made again for nothing
-var inside := PackedByteArray() # for each square of the map, 1 when it is on the body picture
+var inside := PackedByteArray() # for each square of the map, 1 when its middle is on the body picture
+# For each square, bits for its steps right (1), down (2), down right (4) and down left (8):
+# set when the step crosses a gap in the body picture, from the body to the body
+var walls := PackedByteArray()
+var solid := PackedByteArray() # for each pixel of the body picture, 1 when it isn't see-through
+var whole := PackedByteArray() # for each square of the map, 1 when no pixel of it is see-through
+var solid_size := Vector2i.ZERO
 var body_picture: Texture2D # the body picture the map was made from
 var picture_size := Vector2.ONE # the size of the doll's images
 # The bones that turn each point (on the doll as drawn) and how much, worked out from the map
@@ -105,11 +122,16 @@ func build(picture:Texture2D, image_corner:Vector2, image_size:Vector2, layer_to
 	square_weights = PackedFloat32Array()
 	square_weights.resize(columns * rows * 3)
 	inside = PackedByteArray()
+	walls = PackedByteArray()
+	solid = PackedByteArray()
 	if bones.is_empty() or picture == null:
 		return
-	inside = _inside(picture)
-	if inside.is_empty():
+	_read_solid(picture)
+	if solid.is_empty():
 		return
+	inside = _inside()
+	whole = _whole()
+	walls = _walls()
 
 	# how far each square is from each bone, going through the doll
 	var distances := []
@@ -142,22 +164,146 @@ func build(picture:Texture2D, image_corner:Vector2, image_size:Vector2, layer_to
 			square_bones[square * 3 + k] = found[k][1]
 			square_weights[square * 3 + k] = found[k][0] / total
 
-# For each square of the map, whether it is on the body picture
-func _inside(picture:Texture2D) -> PackedByteArray:
+# Reads which pixels of the body picture aren't see-through
+func _read_solid(picture:Texture2D) -> void:
 	var image = picture.get_image()
 	if image == null:
-		return PackedByteArray()
+		return
 	image = image.duplicate()
 	if image.is_compressed():
 		image.decompress()
 	image.convert(Image.FORMAT_RGBA8)
-	image.resize(columns, rows, Image.INTERPOLATE_BILINEAR)
-	var inside := PackedByteArray()
-	inside.resize(columns * rows)
-	for y in rows:
-		for x in columns:
-			inside[y * columns + x] = 1 if image.get_pixel(x, y).a > 0.25 else 0
-	return inside
+	solid_size = image.get_size()
+	var data = image.get_data()
+	solid.resize(solid_size.x * solid_size.y)
+	for i in len(solid):
+		solid[i] = 1 if data[i * 4 + 3] > 127 else 0
+
+# Whether the body picture isn't see-through at spot (in a layer's coordinates)
+func _solid_at(spot:Vector2) -> bool:
+	var pixel = Vector2i(((spot - corner) / picture_size * Vector2(solid_size)).floor())
+	if pixel.x < 0 or pixel.y < 0 or pixel.x >= solid_size.x or pixel.y >= solid_size.y:
+		return false
+	return solid[pixel.y * solid_size.x + pixel.x] == 1
+
+# Whether going straight from one spot to another (in a layer's coordinates) crosses a gap:
+# from the body, over see-through pixels, and back onto the body
+func _crosses_gap(from:Vector2, to:Vector2) -> bool:
+	var pixel = picture_size / Vector2(solid_size)
+	var samples = ceili(from.distance_to(to) / minf(pixel.x, pixel.y) * 2.0) + 1 # every half pixel, so no gap is stepped over
+	var on_body = false
+	var left_body = false
+	for i in samples + 1:
+		if _solid_at(from.lerp(to, float(i) / samples)):
+			if left_body:
+				return true
+			on_body = true
+		elif on_body:
+			left_body = true
+	return false
+
+# The middle of a square, in a layer's coordinates
+func _middle_of(square:int) -> Vector2:
+	return corner + (Vector2(square % columns, square / columns) + Vector2(0.5, 0.5)) * CELL
+
+# For each square of the map, whether its middle is on the body picture
+func _inside() -> PackedByteArray:
+	var result := PackedByteArray()
+	result.resize(columns * rows)
+	for square in columns * rows:
+		result[square] = 1 if _solid_at(_middle_of(square)) else 0
+	return result
+
+# For each square of the map, whether none of its pixels are see-through (no gap can cross it)
+func _whole() -> PackedByteArray:
+	var result := PackedByteArray()
+	result.resize(columns * rows)
+	var pixel = Vector2(solid_size) / picture_size * CELL # the square's size in pixels
+	for square in columns * rows:
+		var first = Vector2i((Vector2(square % columns, square / columns) * pixel).floor())
+		var last = Vector2i((Vector2(square % columns + 1, square / columns + 1) * pixel).ceil()).min(solid_size)
+		var all_solid = first.x < last.x and first.y < last.y
+		for y in range(first.y, last.y):
+			for x in range(first.x, last.x):
+				if solid[y * solid_size.x + x] == 0:
+					all_solid = false
+					break
+			if not all_solid:
+				break
+		result[square] = 1 if all_solid else 0
+	return result
+
+# Whether the map squares around spot (in a layer's coordinates) are all whole, so nothing
+# near it can cross a gap
+func _whole_around(spot:Vector2) -> bool:
+	var at = Vector2i(((spot - corner) / CELL - Vector2(0.5, 0.5)).floor())
+	for step in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
+		var x = at.x + step.x
+		var y = at.y + step.y
+		if x < 0 or y < 0 or x >= columns or y >= rows or whole[y * columns + x] == 0:
+			return false
+	return true
+
+# For each square of the map, which of its steps cross a gap in the body picture (see walls)
+func _walls() -> PackedByteArray:
+	var result := PackedByteArray()
+	result.resize(columns * rows)
+	for square in columns * rows:
+		if inside[square] == 0:
+			continue
+		var x = square % columns
+		var y = square / columns
+		var bits = 0
+		for neighbor in NEIGHBORS:
+			var nx = x + neighbor[0]
+			var ny = y + neighbor[1]
+			if neighbor[4] or nx < 0 or ny >= rows or nx >= columns:
+				continue
+			var next = ny * columns + nx
+			# a step only crosses the squares it goes between (and, going diagonally, the corner
+			# of the two others), so between whole squares there's no gap to cross
+			if inside[next] == 0 or _whole_around((_middle_of(square) + _middle_of(next)) / 2.0):
+				continue
+			if _crosses_gap(_middle_of(square), _middle_of(next)):
+				bits |= neighbor[3]
+		result[square] = bits
+	return result
+
+# Whether the step from square to its neighbor next crosses a gap (neighbor is from NEIGHBORS)
+func _walled(square:int, next:int, neighbor:Array) -> bool:
+	return walls[next if neighbor[4] else square] & neighbor[3] != 0
+
+# Spots along the narrow gaps in the body picture, such as between an arm and the hips
+# (in a layer's coordinates): along the middle of each gap and its edges on both sides,
+# for the grid to have points there, so it tears along the gap
+func gap_points() -> PackedVector2Array:
+	var spots := PackedVector2Array()
+	if solid.is_empty():
+		return spots
+	var pixel = picture_size / Vector2(solid_size)
+	var widest = ceili(NARROW_GAP / minf(pixel.x, pixel.y))
+	var every = maxi(1, roundi(2.0 / pixel.y))
+	# across each row, and down each column
+	for across in [true, false]:
+		var lines = solid_size.y if across else solid_size.x
+		var length = solid_size.x if across else solid_size.y
+		for line in range(0, lines, every):
+			var gap_from = -1
+			var was_solid = false
+			for i in length:
+				var here = solid[line * solid_size.x + i] if across else solid[i * solid_size.x + line]
+				if here == 1:
+					if was_solid == false and gap_from >= 0 and i - gap_from <= widest:
+						for along in [gap_from - 0.5, (gap_from + i) / 2.0, i + 0.5]:
+							var at = Vector2(along, line + 0.5) if across else Vector2(line + 0.5, along)
+							spots.append(corner + at * pixel)
+					was_solid = true
+					gap_from = -1
+				else:
+					if was_solid:
+						gap_from = i
+					was_solid = false
+	return spots
 
 # The squares a bone covers: those within its Width of the line from its joint to its end.
 # Everything there goes fully with the bone, so a wide torso holds the body still
@@ -177,7 +323,36 @@ func _squares_on(bone:Node2D) -> PackedInt32Array:
 	if squares.is_empty():
 		var spot = Vector2i(start.floor()).clamp(Vector2i.ZERO, Vector2i(columns - 1, rows - 1))
 		squares.append(spot.y * columns + spot.x)
-	return squares
+		return squares
+	# only those on the body joined to the bone's line without crossing a gap, so an arm
+	# held close to the body doesn't take the hips along
+	var near := {}
+	var joined := []
+	for square in squares:
+		if inside[square] == 0:
+			continue
+		near[square] = true
+		var middle = Vector2(square % columns, square / columns) + Vector2(0.5, 0.5)
+		if middle.distance_to(Geometry2D.get_closest_point_to_segment(middle, start, finish)) <= 0.75:
+			joined.append(square)
+	if joined.is_empty():
+		return squares
+	var reached := {}
+	for square in joined:
+		reached[square] = true
+	while not joined.is_empty():
+		var square = joined.pop_back()
+		for neighbor in NEIGHBORS:
+			var nx = square % columns + neighbor[0]
+			var ny = square / columns + neighbor[1]
+			var next = ny * columns + nx
+			if nx < 0 or ny < 0 or nx >= columns or ny >= rows or reached.has(next) or not near.has(next):
+				continue
+			if _walled(square, next, neighbor):
+				continue
+			reached[next] = true
+			joined.append(next)
+	return PackedInt32Array(reached.keys())
 
 # How far every square is from the sources, going through the doll (across empty space
 # costs more), or -1 for squares further than limit (-1 for no limit).
@@ -195,8 +370,6 @@ func _distances(sources:PackedInt32Array, inside:PackedByteArray, limit:int) -> 
 		buckets[0].append(source)
 	var waiting = len(sources)
 	var reached = 0
-	var neighbors = [Vector3i(1, 0, STEP), Vector3i(-1, 0, STEP), Vector3i(0, 1, STEP), Vector3i(0, -1, STEP),
-		Vector3i(1, 1, DIAGONAL_STEP), Vector3i(-1, 1, DIAGONAL_STEP), Vector3i(1, -1, DIAGONAL_STEP), Vector3i(-1, -1, DIAGONAL_STEP)]
 	while waiting > 0:
 		var bucket: Array = buckets[reached % ring]
 		buckets[reached % ring] = []
@@ -207,13 +380,15 @@ func _distances(sources:PackedInt32Array, inside:PackedByteArray, limit:int) -> 
 			var x = square % columns
 			var y = square / columns
 			var here_inside = inside[square] == 1
-			for neighbor in neighbors:
-				var nx = x + neighbor.x
-				var ny = y + neighbor.y
+			for neighbor in NEIGHBORS:
+				var nx = x + neighbor[0]
+				var ny = y + neighbor[1]
 				if nx < 0 or ny < 0 or nx >= columns or ny >= rows:
 					continue
 				var next = ny * columns + nx
-				var cost = neighbor.z if here_inside and inside[next] == 1 else neighbor.z * OUTSIDE_COST
+				# across empty space, or across a gap between two parts, costs more
+				var through = here_inside and inside[next] == 1 and not _walled(square, next, neighbor)
+				var cost = neighbor[2] if through else neighbor[2] * OUTSIDE_COST
 				var further = reached + cost
 				if (limit >= 0 and further > limit) or (distance[next] >= 0 and distance[next] <= further):
 					continue
@@ -246,12 +421,7 @@ func pose(shown:Dictionary, joints:Array) -> Array:
 func posed(point:Vector2, drawn:Vector2, moves:Array, index := -1) -> Vector2:
 	var mix = torn.get(index)
 	if mix == null:
-		mix = mixes.get(drawn)
-	if mix == null:
-		mix = _mix(drawn)
-		if len(mixes) >= MAX_MIXES:
-			mixes.clear()
-		mixes[drawn] = mix
+		mix = _kept_mix(drawn)
 	var turning: PackedInt32Array = mix[0]
 	if turning.is_empty():
 		return point
@@ -261,30 +431,63 @@ func posed(point:Vector2, drawn:Vector2, moves:Array, index := -1) -> Vector2:
 		result += weights[k] * (moves[turning[k]] * point - point)
 	return result
 
+# _mix(drawn), kept for the next time it's asked about
+func _kept_mix(drawn:Vector2) -> Array:
+	var mix = mixes.get(drawn)
+	if mix == null:
+		mix = _mix(drawn)
+		if len(mixes) >= MAX_MIXES:
+			mixes.clear()
+		mixes[drawn] = mix
+	return mix
+
+# Whether the squares all go with the same bones by the same amounts (nothing to leave out)
+func _all_alike(squares:Array) -> bool:
+	var first = squares[0] * 3
+	for square in squares:
+		for k in 3:
+			if square_bones[square * 3 + k] != square_bones[first + k] \
+					or absf(square_weights[square * 3 + k] - square_weights[first + k]) > 0.01:
+				return false
+	return true
+
 # Which turning bones a point on the doll as drawn goes with, and how much:
 # blended from the four squares of the map around it, so the turn changes smoothly,
-# or with blend off, just from the square it is on
+# or with blend off, just from the square it is on. For a point on the body, squares off
+# the body or across a gap in the body picture are left out, so the hips next to an arm
+# stay with the hips.
 func _mix(drawn:Vector2, blend := true) -> Array:
 	var found := {}
 	if not square_bones.is_empty():
-		var spot = (from_screen * drawn - corner) / CELL - Vector2(0.5, 0.5)
+		var here = from_screen * drawn
+		var spot = (here - corner) / CELL - Vector2(0.5, 0.5)
 		var first = Vector2i(spot.floor())
 		var part = spot - Vector2(first)
 		if not blend:
 			first = Vector2i((spot + Vector2(0.5, 0.5)).floor())
 			part = Vector2.ZERO
+		var shares := {}
 		for step in [Vector2i(0, 0), Vector2i(1, 0), Vector2i(0, 1), Vector2i(1, 1)]:
 			var at = (first + step).clamp(Vector2i.ZERO, Vector2i(columns - 1, rows - 1))
 			var share = (part.x if step.x == 1 else 1.0 - part.x) * (part.y if step.y == 1 else 1.0 - part.y)
-			if share <= 0.0:
-				continue
-			var square = (at.y * columns + at.x) * 3
+			if share > 0.0:
+				shares[at.y * columns + at.x] = shares.get(at.y * columns + at.x, 0.0) + share
+		# a point on the body only takes after squares on the body on its own side of any gap
+		var kept = shares.keys()
+		if not _whole_around(here) and not _all_alike(kept):
+			var on_body = _solid_at(here)
+			kept = kept.filter(func(square):
+				return not (on_body and inside[square] == 0) and not _crosses_gap(here, _middle_of(square)))
+		if kept.is_empty():
+			kept = shares.keys()
+		var total = kept.reduce(func(sum, square): return sum + shares[square], 0.0)
+		for square in kept:
 			for k in 3:
-				var bone = square_bones[square + k]
+				var bone = square_bones[square * 3 + k]
 				if bone < 0:
 					break
 				if bones[bone].slider != "":
-					found[bone] = found.get(bone, 0.0) + share * square_weights[square + k]
+					found[bone] = found.get(bone, 0.0) + shares[square] / total * square_weights[square * 3 + k]
 	return [PackedInt32Array(found.keys()), PackedFloat32Array(found.values())]
 
 
@@ -293,7 +496,9 @@ func _mix(drawn:Vector2, blend := true) -> Array:
 # points are the grid's points on the doll as drawn (on the screen), and triangles which
 # points make each triangle. A triangle that reaches off the body to points going with
 # another part gets copies of those points that go with its own part (that of its points
-# on the body, or of its middle).
+# on the body, or of its middle). A triangle reaching across a narrow gap from one part of
+# the body to another (an arm held close to the hips) goes wholly with the part its middle
+# is on, or, with its middle in the gap, the part its nearest point is on.
 # Returns [copies, triangles, mends]: copies is the point each new grid point copies (the
 # new points come after points), triangles the torn triangles, and mends, for each torn
 # triangle whose middle is off the body picture, [where it is in triangles, its points before
@@ -310,7 +515,7 @@ func tear(points:PackedVector2Array, triangles:PackedInt32Array) -> Array:
 	for i in len(points):
 		on_body.append(1 if _on_body(points[i]) else 0)
 		if on_body[i] == 1:
-			point_mixes.append(_mix(points[i]))
+			point_mixes.append(_kept_mix(points[i]))
 		else:
 			# off the body, points go with just the part they're nearest, not a blend of the
 			# parts on both sides of a narrow gap, so the grid tears there instead of stretching
@@ -323,8 +528,6 @@ func tear(points:PackedVector2Array, triangles:PackedInt32Array) -> Array:
 	var result = triangles.duplicate()
 	for t in range(0, len(triangles), 3):
 		var corners = [triangles[t], triangles[t + 1], triangles[t + 2]]
-		if corners.all(func(i): return on_body[i] == 1):
-			continue
 		var apart = 0.0
 		for k in 3:
 			apart = maxf(apart, _difference(point_mixes[corners[k]], point_mixes[corners[(k + 1) % 3]]))
@@ -332,10 +535,27 @@ func tear(points:PackedVector2Array, triangles:PackedInt32Array) -> Array:
 			continue
 		var middle = (points[corners[0]] + points[corners[1]] + points[corners[2]]) / 3.0
 		var on = corners.filter(func(i): return on_body[i] == 1)
-		var mix = _rounded(_mix(middle) if on.is_empty() else _average(on.map(func(i): return point_mixes[i])))
+		var across = false # whether it reaches across a gap from one part of the body to another
+		if len(on) == 3:
+			for k in 3:
+				across = across or _crosses_gap(from_screen * points[on[k]], from_screen * points[on[(k + 1) % 3]])
+			if not across:
+				continue
+		var mix
+		if across:
+			var side = corners[0]
+			for i in corners:
+				if points[i].distance_to(middle) < points[side].distance_to(middle):
+					side = i
+			mix = _rounded(_mix(middle) if _on_body(middle) else point_mixes[side])
+		else:
+			mix = _rounded(_mix(middle) if on.is_empty() else _average(on.map(func(i): return point_mixes[i])))
 		for k in 3:
 			var i = corners[k]
-			if on_body[i] == 1 or _difference(point_mixes[i], mix) < 0.05:
+			if _difference(point_mixes[i], mix) < 0.05:
+				continue
+			# points on the body keep their own blend, unless they're across a gap from the part
+			if on_body[i] == 1 and not (across and _difference(point_mixes[i], mix) >= TEAR / 2.0):
 				continue
 			var key = "%d %s" % [i, mix]
 			if not made.has(key):
@@ -347,12 +567,9 @@ func tear(points:PackedVector2Array, triangles:PackedInt32Array) -> Array:
 			mends.append([t, PackedInt32Array(corners), middle])
 	return [copies, result, mends]
 
-# Whether point (on the screen) is on the body picture, going by the map
+# Whether point (on the screen) is on the body picture
 func _on_body(point:Vector2) -> bool:
-	var at = Vector2i(((from_screen * point - corner) / CELL).floor())
-	if at.x < 0 or at.y < 0 or at.x >= columns or at.y >= rows:
-		return false
-	return inside[at.y * columns + at.x] == 1
+	return _solid_at(from_screen * point)
 
 # Whether the body picture image isn't see-through at point (on the screen). The map is
 # coarser, so this tells the body's own outline from a skirt between the legs (see tear()).

@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c7kqp1wqhn1sk"
-path="res://.godot/imported/greenskin.PNG-4559eeacb5762fc75f8a6f08c7d1d691.ctex"
+uid="uid://bxntspef5pims"
+path="res://.godot/imported/light_skin.PNG-c196eab84b5e30b4e98b4ef00d3da1fe.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/01Skin/greenskin.PNG"
-dest_files=["res://.godot/imported/greenskin.PNG-4559eeacb5762fc75f8a6f08c7d1d691.ctex"]
+source_file="res://images/01Skin/light_skin.PNG"
+dest_files=["res://.godot/imported/light_skin.PNG-c196eab84b5e30b4e98b4ef00d3da1fe.ctex"]
 
 [params]
 

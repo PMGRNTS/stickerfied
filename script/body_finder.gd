@@ -22,8 +22,8 @@ const LOOK_HEIGHT := 400
 # Where each part usually is on a doll standing straight: how far down from the top of
 # the doll (as a part of its height), and half its width (also as a part of its height)
 const STANDARD := {
-	"neck": 0.19, "shoulders": 0.25, "chest": 0.32, "waist": 0.42, "hips": 0.5, "crotch": 0.54,
-	"head_width": 0.075, "shoulder_width": 0.13, "waist_width": 0.085, "hip_width": 0.11,
+	"neck": 0.12, "shoulders": 0.18, "chest": 0.25, "waist": 0.32, "hips": 0.47, "crotch": 0.5,
+	"head_width": 0.052, "shoulder_width": 0.08, "waist_width": 0.05, "hip_width": 0.088,
 }
 
 static func standard(body:Image) -> Dictionary:

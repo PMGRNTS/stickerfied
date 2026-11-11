@@ -589,12 +589,23 @@ func _build_grid() -> void:
 		uvs.append(uv)
 		rest.append(corner + uv * image_size)
 		colors.append(Color.WHITE)
+	if skeleton:
+		var body_picture = layers[0].texture if not layers.is_empty() else null
+		skeleton.build(body_picture, corner, image_size, to_screen)
+		# extra points along narrow gaps in the body, such as between an arm and the hips,
+		# so the grid can tear there (leaving out any that land on a point already there)
+		if skeleton.has_turning_bones():
+			for spot in skeleton.gap_points():
+				var on_lattice = (spot - corner) / lattice
+				if on_lattice.distance_to(on_lattice.round()) < 0.2 and spots.has(Vector2i(on_lattice.round())):
+					continue
+				rest.append(spot)
+				uvs.append((spot - corner) / image_size)
+				colors.append(Color.WHITE)
 	var triangles = Geometry2D.triangulate_delaunay(rest)
 	# the grid tears between parts that turn differently, such as the legs (see body_skeleton.gd)
 	var mends := []
 	if skeleton:
-		var body_picture = layers[0].texture if not layers.is_empty() else null
-		skeleton.build(body_picture, corner, image_size, to_screen)
 		var on_screen = rest.duplicate()
 		for i in len(rest):
 			on_screen[i] = to_screen * rest[i]

@@ -20,15 +20,15 @@ draw them in one color with dark outlines. You can still add separate images
 for each color if you prefer.
 
 Example:
-	The alien has 2 skin color options, 2 face options and multiple hair options.
-	The background will be shown behind the alien, so background folder is named 00Background.
+	The doll has 2 skin tones, 2 face options and multiple hair options.
+	The background will be shown behind the doll, so background folder is named 00Background.
 	The skin is the lowest layer to display, so the folder is named 01Skin.
-	The alien has 2 skin color options, so it has 2 separate images in the 01Skin folder.
+	The doll has 2 skin tones (light_skin and rich_brown_skin), so it has 2 separate images in the 01Skin folder.
 	All of the skin, face and hair options have separate png files. The dimensions of these files are the same.
 	The background images can be jpg or png files.
 	There is also an image called "icon.png" in each folder; this represents the folder in the menus.
-	So for the alien's hair, there is a folder called "03Hair", and inside that folder
-	an icon.png that looks like an alien with a hair tuft.
+	So for the doll's hair, there is a folder called "03Hair", and inside that folder
+	an icon.png that shows a hair tuft.
 
 
 ####################################
@@ -301,7 +301,9 @@ Left leg, Left knee, Right leg and Right knee sliders in the Body menu's Pose gr
   Hair, clothes and stickers that stick out past the body go with the nearest part of the body.
 - Bones are turned after the other sliders, so a longer arm or a leaning body still turns at the
   right joints. Arms and legs drawn apart from the body (a hand on the hip leaves no gap
-  to turn) give the cleanest results.
+  to turn) give the cleanest results. Even a gap of a pixel or two is enough: the skeleton
+  checks the body picture itself, so an arm hanging close to the hips turns without
+  taking the hips along.
 - Where the doll's grid reaches across empty space between parts that turn differently
   (between the legs, or an arm drawn apart from the body), it tears instead of stretching,
   so the gap opens cleanly (body_skeleton.gd's tear()). A layer drawn across the gap, such

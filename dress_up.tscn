@@ -3,7 +3,7 @@
 [ext_resource type="Script" uid="uid://cp64i8kvmjm4j" path="res://script/dress_up.gd" id="1_218i8"]
 [ext_resource type="PackedScene" uid="uid://cv83rgdidyu3y" path="res://GUI/tab_of_buttons.tscn" id="1_pm0by"]
 [ext_resource type="PackedScene" uid="uid://c7icxamrechmt" path="res://GUI/button_base.tscn" id="2_ihm3m"]
-[ext_resource type="Texture2D" uid="uid://bxntspef5pims" path="res://images/01Skin/blueskin.PNG" id="3_ihm3m"]
+[ext_resource type="Texture2D" uid="uid://bxntspef5pims" path="res://images/01Skin/light_skin.PNG" id="3_ihm3m"]
 [ext_resource type="PackedScene" uid="uid://085stdwoihki" path="res://GUI/category_button.tscn" id="3_patwh"]
 [ext_resource type="Script" uid="uid://bk71f6s8r6e35" path="res://script/interactivity.gd" id="4_l5b77"]
 [ext_resource type="Texture2D" uid="uid://ng4fxi4i0c6b" path="res://images/00Backgrounds/lines.jpg" id="6_218i8"]
@@ -136,7 +136,7 @@ layout_mode = 2
 
 [node name="SpritePlaceholder" type="Sprite2D" parent="." unique_id=1884174206]
 unique_name_in_owner = true
-position = Vector2(261, 296)
+position = Vector2(280, 300)
 texture = ExtResource("3_ihm3m")
 
 [node name="BodyShaper" type="Node2D" parent="."]
@@ -144,84 +144,84 @@ unique_name_in_owner = true
 script = ExtResource("16_shaper")
 
 [node name="HeadSize" type="Node2D" parent="BodyShaper"]
-position = Vector2(256, 88)
+position = Vector2(278.5, 100)
 script = ExtResource("17_control")
 slider = "Head size"
 group = "Body"
 shape = 0
-reach = Vector2(110, 110)
+reach = Vector2(46, 50)
 stretch = Vector2(0.35, 0.35)
 move = Vector2(0, 0)
 anchor = 0
 landmark = 2
 
 [node name="Shoulders" type="Node2D" parent="BodyShaper"]
-position = Vector2(283, 176)
+position = Vector2(278.5, 170)
 script = ExtResource("17_control")
 slider = "Shoulders"
 group = "Body"
 shape = 0
-reach = Vector2(150, 70)
+reach = Vector2(75, 28)
 stretch = Vector2(0.4, 0)
 move = Vector2(0, 0)
 anchor = 0
 landmark = 9
 
 [node name="Waist" type="Node2D" parent="BodyShaper"]
-position = Vector2(286, 296)
+position = Vector2(278.5, 232)
 script = ExtResource("17_control")
 slider = "Waist"
 group = "Body"
 shape = 0
-reach = Vector2(75, 60)
+reach = Vector2(36, 26)
 stretch = Vector2(0.45, 0)
 move = Vector2(0, 0)
 anchor = 0
 landmark = 11
 
 [node name="Hips" type="Node2D" parent="BodyShaper"]
-position = Vector2(283, 381)
+position = Vector2(278.5, 305)
 script = ExtResource("17_control")
 slider = "Hips"
 group = "Body"
 shape = 0
-reach = Vector2(80, 55)
+reach = Vector2(58, 26)
 stretch = Vector2(0.45, 0)
 move = Vector2(0, 0)
 anchor = 0
 landmark = 12
 
 [node name="Legs" type="Node2D" parent="BodyShaper"]
-position = Vector2(261, 466)
+position = Vector2(278.5, 440)
 script = ExtResource("17_control")
 slider = "Legs"
 group = "Body"
 shape = 1
-reach = Vector2(150, 80)
+reach = Vector2(60, 95)
 stretch = Vector2(0, 0.25)
 move = Vector2(0, 0)
 anchor = 2
 landmark = 13
 
 [node name="Height" type="Node2D" parent="BodyShaper"]
-position = Vector2(261, 306)
+position = Vector2(278.5, 319)
 script = ExtResource("17_control")
 slider = "Height"
 group = "Body"
 shape = 1
-reach = Vector2(150, 272)
+reach = Vector2(110, 250)
 stretch = Vector2(0, 0.1)
 move = Vector2(0, 0)
 anchor = 2
 landmark = 1
 
 [node name="EyeSizeLeft" type="Node2D" parent="BodyShaper"]
-position = Vector2(217, 70)
+position = Vector2(266.3, 105.5)
 script = ExtResource("17_control")
 slider = "Eye size"
 group = "Face"
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0.4, 0.4)
 move = Vector2(0, 0)
 anchor = 0
@@ -229,12 +229,12 @@ soft_edge = 0.5
 landmark = 4
 
 [node name="EyeSizeRight" type="Node2D" parent="BodyShaper"]
-position = Vector2(260, 70)
+position = Vector2(290.7, 105.5)
 script = ExtResource("17_control")
 slider = "Eye size"
 group = "Face"
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0.4, 0.4)
 move = Vector2(0, 0)
 anchor = 0
@@ -242,90 +242,90 @@ soft_edge = 0.5
 landmark = 5
 
 [node name="EyeSpacingLeft" type="Node2D" parent="BodyShaper"]
-position = Vector2(217, 70)
+position = Vector2(266.3, 105.5)
 script = ExtResource("17_control")
 slider = "Eye spacing"
 group = "Face"
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0, 0)
-move = Vector2(-6, 0)
+move = Vector2(-3, 0)
 anchor = 0
 soft_edge = 0.5
 landmark = 4
 
 [node name="EyeSpacingRight" type="Node2D" parent="BodyShaper"]
-position = Vector2(260, 70)
+position = Vector2(290.7, 105.5)
 script = ExtResource("17_control")
 slider = "Eye spacing"
 group = "Face"
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0, 0)
-move = Vector2(6, 0)
+move = Vector2(3, 0)
 anchor = 0
 soft_edge = 0.5
 landmark = 5
 
 [node name="LookAcrossLeft" type="Node2D" parent="BodyShaper"]
-position = Vector2(217, 70)
+position = Vector2(266.3, 105.5)
 script = ExtResource("17_control")
 slider = "Look across"
 group = ""
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0, 0)
-move = Vector2(7, 0)
+move = Vector2(3.5, 0)
 anchor = 0
 soft_edge = 0.6
 landmark = 4
 
 [node name="LookAcrossRight" type="Node2D" parent="BodyShaper"]
-position = Vector2(260, 70)
+position = Vector2(290.7, 105.5)
 script = ExtResource("17_control")
 slider = "Look across"
 group = ""
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0, 0)
-move = Vector2(7, 0)
+move = Vector2(3.5, 0)
 anchor = 0
 soft_edge = 0.6
 landmark = 5
 
 [node name="LookUpLeft" type="Node2D" parent="BodyShaper"]
-position = Vector2(217, 70)
+position = Vector2(266.3, 105.5)
 script = ExtResource("17_control")
 slider = "Look up"
 group = ""
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0, 0)
-move = Vector2(0, -4)
+move = Vector2(0, -2)
 anchor = 0
 soft_edge = 0.6
 landmark = 4
 
 [node name="LookUpRight" type="Node2D" parent="BodyShaper"]
-position = Vector2(260, 70)
+position = Vector2(290.7, 105.5)
 script = ExtResource("17_control")
 slider = "Look up"
 group = ""
 shape = 0
-reach = Vector2(20, 11)
+reach = Vector2(11, 6)
 stretch = Vector2(0, 0)
-move = Vector2(0, -4)
+move = Vector2(0, -2)
 anchor = 0
 soft_edge = 0.6
 landmark = 5
 
 [node name="MouthSize" type="Node2D" parent="BodyShaper"]
-position = Vector2(245, 98)
+position = Vector2(278.5, 121)
 script = ExtResource("17_control")
 slider = "Mouth size"
 group = "Face"
 shape = 0
-reach = Vector2(55, 24)
+reach = Vector2(24, 10)
 stretch = Vector2(0.4, 0.15)
 move = Vector2(0, 0)
 anchor = 0
@@ -333,94 +333,94 @@ soft_edge = 0.6
 landmark = 6
 
 [node name="MouthHeight" type="Node2D" parent="BodyShaper"]
-position = Vector2(245, 98)
+position = Vector2(278.5, 121)
 script = ExtResource("17_control")
 slider = "Mouth height"
 group = "Face"
 shape = 0
-reach = Vector2(60, 30)
+reach = Vector2(26, 13)
 stretch = Vector2(0, 0)
-move = Vector2(0, -6)
+move = Vector2(0, -3)
 anchor = 0
 soft_edge = 0.5
 landmark = 6
 
 [node name="Cheeks" type="Node2D" parent="BodyShaper"]
-position = Vector2(256, 126)
+position = Vector2(278.5, 118)
 script = ExtResource("17_control")
 slider = "Cheeks"
 group = "Face"
 shape = 0
-reach = Vector2(90, 40)
+reach = Vector2(32, 15)
 stretch = Vector2(0.25, 0)
 move = Vector2(0, 0)
 anchor = 0
 landmark = 7
 
 [node name="SquintLeft" type="Node2D" parent="BodyShaper"]
-position = Vector2(217, 70)
+position = Vector2(266.3, 105.5)
 script = ExtResource("17_control")
 slider = "Squint"
 group = "Face"
 shape = 0
-reach = Vector2(20, 10)
+reach = Vector2(11, 5.5)
 stretch = Vector2(0, -0.9)
 soft_edge = 0.4
 landmark = 4
 
 [node name="SquintRight" type="Node2D" parent="BodyShaper"]
-position = Vector2(260, 70)
+position = Vector2(290.7, 105.5)
 script = ExtResource("17_control")
 slider = "Squint"
 group = "Face"
 shape = 0
-reach = Vector2(20, 10)
+reach = Vector2(11, 5.5)
 stretch = Vector2(0, -0.9)
 soft_edge = 0.4
 landmark = 5
 
 [node name="Smile" type="Node2D" parent="BodyShaper"]
-position = Vector2(245, 98)
+position = Vector2(278.5, 121)
 script = ExtResource("17_control")
 slider = "Smile"
 group = "Face"
 shape = 0
-reach = Vector2(60, 30)
+reach = Vector2(26, 13)
 stretch = Vector2(0, 0)
-bend = 22.0
+bend = 10.0
 soft_edge = 0.5
 landmark = 6
 
 [node name="Smirk" type="Node2D" parent="BodyShaper"]
-position = Vector2(245, 98)
+position = Vector2(278.5, 121)
 script = ExtResource("17_control")
 slider = "Smirk"
 group = "Face"
 shape = 0
-reach = Vector2(60, 30)
+reach = Vector2(26, 13)
 stretch = Vector2(0, 0)
-bend = 20.0
+bend = 9.0
 bend_side = 1.0
 soft_edge = 0.5
 landmark = 6
 
 [node name="Breathing" type="Node2D" parent="BodyShaper"]
-position = Vector2(286, 226)
+position = Vector2(278.5, 196)
 script = ExtResource("17_control")
 slider = "Breathing"
 group = ""
 shape = 0
-reach = Vector2(85, 75)
+reach = Vector2(40, 32)
 stretch = Vector2(0.04, 0.03)
 landmark = 10
 
 [node name="HairSwing" type="Node2D" parent="BodyShaper"]
-position = Vector2(306, 171)
+position = Vector2(280.5, 165)
 script = ExtResource("17_control")
 slider = ""
 group = ""
 shape = 0
-reach = Vector2(135, 140)
+reach = Vector2(100, 100)
 stretch = Vector2(0, 0)
 soft_edge = 0.4
 swing = 0.8
@@ -428,24 +428,24 @@ swing_layers = "Hair"
 landmark = 8
 
 [node name="HeadTilt" type="Node2D" parent="BodyShaper"]
-position = Vector2(279, 146)
+position = Vector2(278.5, 140)
 script = ExtResource("17_control")
 slider = "Head tilt"
 group = "Pose"
 shape = 2
-reach = Vector2(140, 18)
+reach = Vector2(100, 8)
 stretch = Vector2(0, 0)
 turn = 20.0
 soft_edge = 0.3
 landmark = 3
 
 [node name="Lean" type="Node2D" parent="BodyShaper"]
-position = Vector2(286, 381)
+position = Vector2(278.5, 305)
 script = ExtResource("17_control")
 slider = "Lean"
 group = "Pose"
 shape = 2
-reach = Vector2(220, 30)
+reach = Vector2(110, 20)
 stretch = Vector2(0, 0)
 turn = 10.0
 soft_edge = 0.4
@@ -455,82 +455,82 @@ landmark = 12
 script = ExtResource("22_skeleton")
 
 [node name="Torso" type="Node2D" parent="BodyShaper/Skeleton"]
-position = Vector2(286, 326)
+position = Vector2(278.5, 300)
 script = ExtResource("23_bone")
-end = Vector2(-10, -180)
-width = 45.0
+end = Vector2(0, -160)
+width = 26.0
 joint = 1
 end_joint = 2
 
 [node name="LeftUpperArm" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
-position = Vector2(-60, -96)
+position = Vector2(-37.5, -124)
 script = ExtResource("23_bone")
 slider = "Left arm"
 turn = Vector2(-10, 15)
-width = 14.0
+width = 9.0
 joint = 3
 
 [node name="LeftForearm" type="Node2D" parent="BodyShaper/Skeleton/Torso/LeftUpperArm"]
-position = Vector2(-50, 8)
+position = Vector2(-18.3, 77.3)
 script = ExtResource("23_bone")
 slider = "Left elbow"
 turn = Vector2(-25, 20)
-end = Vector2(0, -65)
-width = 13.0
+end = Vector2(-21.5, 94.8)
+width = 7.0
 joint = 4
 end_joint = 5
 
 [node name="RightUpperArm" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
-position = Vector2(33, -155)
+position = Vector2(37.5, -124)
 script = ExtResource("23_bone")
 slider = "Right arm"
 turn = Vector2(10, -15)
-width = 13.0
+width = 9.0
 joint = 6
 
 [node name="RightForearm" type="Node2D" parent="BodyShaper/Skeleton/Torso/RightUpperArm"]
-position = Vector2(50, 87)
+position = Vector2(18.3, 77.3)
 script = ExtResource("23_bone")
 slider = "Right elbow"
 turn = Vector2(25, -20)
-end = Vector2(14, 68)
-width = 12.0
+end = Vector2(21.5, 94.8)
+width = 7.0
 joint = 7
 end_joint = 8
 
 [node name="LeftThigh" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
-position = Vector2(-25, 45)
+position = Vector2(-22.5, 18)
 script = ExtResource("23_bone")
 slider = "Left leg"
 turn = Vector2(-8, 15)
-width = 20.0
+width = 12.0
 joint = 9
 
 [node name="LeftShin" type="Node2D" parent="BodyShaper/Skeleton/Torso/LeftThigh"]
-position = Vector2(-33, 95)
+position = Vector2(5, 92)
 script = ExtResource("23_bone")
 slider = "Left knee"
 turn = Vector2(-15, 15)
-end = Vector2(-29, 85)
-width = 16.0
+end = Vector2(3.5, 155)
+width = 9.0
 joint = 10
 end_joint = 11
 
 [node name="RightThigh" type="Node2D" parent="BodyShaper/Skeleton/Torso"]
-position = Vector2(25, 45)
+position = Vector2(22.5, 18)
 script = ExtResource("23_bone")
 slider = "Right leg"
 turn = Vector2(8, -15)
-width = 20.0
+width = 12.0
 joint = 12
 
 [node name="RightShin" type="Node2D" parent="BodyShaper/Skeleton/Torso/RightThigh"]
-position = Vector2(5, 95)
+position = Vector2(-5, 92)
 script = ExtResource("23_bone")
 slider = "Right knee"
 turn = Vector2(-15, 15)
-end = Vector2(0, 85)
-width = 16.0
+end = Vector2(-3.5, 155)
+width = 9.0
 joint = 13
 end_joint = 14
 

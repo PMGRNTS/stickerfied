@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://bxntspef5pims"
-path="res://.godot/imported/blueskin.PNG-ea66398ea6b718fc5bb6ae01f4558496.ctex"
+uid="uid://c7kqp1wqhn1sk"
+path="res://.godot/imported/rich_brown_skin.PNG-0a20370def4893507e23186a58e3be0e.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://images/01Skin/blueskin.PNG"
-dest_files=["res://.godot/imported/blueskin.PNG-ea66398ea6b718fc5bb6ae01f4558496.ctex"]
+source_file="res://images/01Skin/rich_brown_skin.PNG"
+dest_files=["res://.godot/imported/rich_brown_skin.PNG-0a20370def4893507e23186a58e3be0e.ctex"]
 
 [params]
 
