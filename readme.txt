@@ -478,6 +478,28 @@ photos are taken without it. It uses the same OpenRouter key as AI Create and AI
 - The conversation is only kept until the game closes.
 - Without the DollMood node she still chats, but only in the window.
 
+Voice:
+The doll reads her chat answers out loud (Settings > "Speak out loud" turns it off, and
+she's quiet while the sound is off). Out of the box she uses the browser's or computer's
+built-in voice. She can speak in her own designed voice instead, made on a Mac with
+Qwen3-TTS (mlx-audio), with the Mac doing the work for every player:
+1. Design her voice and save the clip as ~/VoiceStudio/voices/coco.wav, with the exact
+   words spoken in it in coco.txt next to it.
+2. Install Tailscale ( https://tailscale.com/download/mac ), sign in, and turn on
+   Funnel for this Mac (the first run of the script below shows a link to do it).
+3. Run voice_server/start_voice.sh and leave it open. It starts mlx_audio.server, a
+   guard in front of it, and a Tailscale Funnel, and shows an https://...ts.net address.
+4. Select Popups/DollChat/DollVoice in dress_up.tscn, paste the address in "Server Url",
+   and export the game again.
+- She uses her own voice whenever the Mac is on and the script is running; otherwise, or
+  if it takes more than "Wait Seconds", she uses the built-in voice.
+- The guard ( voice_server/voice_guard.py ) only lets the game choose the words: lines of
+  up to 300 letters, 8 a minute for each player and 40 for everyone, one at a time.
+  To let other websites use it, add them to ALLOWED_ORIGINS there.
+- Run start_voice.sh --local to try it without Tailscale, with "Server Url" set to
+  http://127.0.0.1:8765 (it only works on this Mac then).
+- The "Builtin Pitch" and "Builtin Rate" on DollVoice change the built-in voice.
+
 Sounds:
 The game makes its own small sound effects (pop, click, shutter, sparkle) with code
 ( script/sound_effects.gd ), so no audio files are needed. To use your own, make a

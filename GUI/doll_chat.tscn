@@ -3,6 +3,7 @@
 [ext_resource type="Theme" uid="uid://dsnbslphrq8l4" path="res://theme.tres" id="0_theme"]
 [ext_resource type="Script" path="res://script/doll_chat.gd" id="1_script"]
 [ext_resource type="Script" path="res://script/openrouter_client.gd" id="2_client"]
+[ext_resource type="Script" path="res://script/doll_voice.gd" id="3_voice"]
 
 [node name="DollChat" type="Control"]
 visible = false
@@ -115,6 +116,14 @@ size_flags_vertical = 4
 text = "Models"
 uri = "https://openrouter.ai/models"
 
+[node name="SpeakAloud" type="CheckBox" parent="Panel/Margin/Content/SettingsBox"]
+unique_name_in_owner = true
+layout_mode = 2
+focus_mode = 0
+tooltip_text = "She reads her answers out loud, in her own voice when a voice server is set up (see readme.txt)."
+button_pressed = true
+text = "Speak out loud"
+
 [node name="SettingsButtons" type="HBoxContainer" parent="Panel/Margin/Content/SettingsBox"]
 layout_mode = 2
 theme_override_constants/separation = 6
@@ -213,3 +222,6 @@ text = "Close"
 
 [node name="OpenRouterClient" type="Node" parent="."]
 script = ExtResource("2_client")
+
+[node name="DollVoice" type="Node" parent="."]
+script = ExtResource("3_voice")

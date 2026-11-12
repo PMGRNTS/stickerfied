@@ -5,6 +5,7 @@
 # The window sits over the menu, so the doll stays in sight while you talk.
 # It uses the same OpenRouter key as the AI Create and AI Stylist windows.
 # Her system prompt and model can be changed in the window (Settings) or in the Inspector.
+# She can also read her answers out loud (see doll_voice.gd).
 
 extends OverlayDialog
 
@@ -24,11 +25,13 @@ const NAME_COLOR := Color(0.78, 0.2, 0.55)
 const YOUR_COLOR := Color(0.45, 0.42, 0.6)
 
 @onready var client: OpenRouterClient = $OpenRouterClient
+@onready var voice: DollVoice = $DollVoice
 
 var history := [] # [{"role": "user" or "assistant", "content": "..."}, ...]
 var busy := false
 var own_prompt := "" # the player's own system prompt, "" for chat_instructions
 var own_model := "" # the player's own model, "" for text_model
+var speak_aloud := true
 
 func _ready() -> void:
 	super()
@@ -49,6 +52,11 @@ func _ready() -> void:
 		text = text.strip_edges()
 		own_model = text if text != text_model else ""
 		save_settings())
+	%SpeakAloud.toggled.connect(func(on):
+		speak_aloud = on
+		if not on:
+			voice.stop()
+		save_settings())
 	%ResetButton.pressed.connect(func():
 		own_prompt = ""
 		own_model = ""
@@ -56,6 +64,7 @@ func _ready() -> void:
 		save_settings())
 	%ClearButton.pressed.connect(func():
 		history = []
+		voice.stop()
 		for line in %Messages.get_children():
 			line.queue_free()
 		_show_settings(false))
@@ -104,6 +113,8 @@ func send() -> void:
 	_set_status("Cost: $%.4f" % cost if cost is float else "")
 	if doll_mood:
 		doll_mood.answer(text, feeling)
+	if speak_aloud:
+		voice.speak(text)
 
 # Who she is, what she's wearing and how she feels right now, and how to answer
 func _instructions() -> String:
@@ -168,6 +179,7 @@ func _fill_settings() -> void:
 	%PromptEdit.text = own_prompt if own_prompt != "" else chat_instructions
 	%ModelEdit.placeholder_text = text_model
 	%ModelEdit.text = own_model if own_model != "" else text_model
+	%SpeakAloud.set_pressed_no_signal(speak_aloud)
 
 func load_settings() -> void:
 	var config := ConfigFile.new()
@@ -175,12 +187,14 @@ func load_settings() -> void:
 		return
 	own_prompt = config.get_value("doll_chat", "prompt", "")
 	own_model = config.get_value("doll_chat", "model", "")
+	speak_aloud = config.get_value("doll_chat", "speak_aloud", true)
 
 func save_settings() -> void:
 	var config := ConfigFile.new()
 	config.load(AIKey.SETTINGS_FILE) # keeps the settings saved by other windows
 	config.set_value("doll_chat", "prompt", own_prompt)
 	config.set_value("doll_chat", "model", own_model)
+	config.set_value("doll_chat", "speak_aloud", speak_aloud)
 	config.save(AIKey.SETTINGS_FILE)
 
 # Adds a message to the conversation, and scrolls down to it
